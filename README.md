@@ -11,7 +11,7 @@
 
 ## 📚 코딩 테스트 레포지토리
 
-### [코딩테스트 1](https://github.com/juyangjin/Code-Test)
+### [코딩테스트 1](https://github.com/juyangjin/Coding-Test)
 - 설명: 백준, 프로그래머스 알고리즘 문제 풀이를 다룹니다.
 
 ### [코딩테스트 2](https://github.com/juyangjin/Code-Tree)
