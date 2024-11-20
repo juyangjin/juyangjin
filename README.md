@@ -17,7 +17,7 @@
 - 설명: 코드트리 알고리즘 문제 풀이를 다룹니다.
 
 ## 🧠 개인 공부
-### [개인 공부](https://github.com/username/study)
+### [개인 공부](https://github.com/juyangjin/study)
 - 설명: Java 위주 공부와 프로젝트입니다.
 
 ### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
