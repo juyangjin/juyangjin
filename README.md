@@ -22,9 +22,9 @@
 ### [개인 공부](https://github.com/username/study1)
 - 설명: Java 위주 공부와 프로젝트입니다.
 
-## 스파르타 코딩클럽
+## 📚 스파르타 코딩클럽
 
-### [팀 프로젝트]()
+### [1주차 웹개발 희망편]
 
 ### [개인 과제](https://github.com/juyangjin/personal_assignment)
 - 설명: 스파르타 코딩클럽에서 진행한 개인과제
