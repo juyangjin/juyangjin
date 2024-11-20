@@ -24,8 +24,8 @@
 - 설명 : '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
 
 ## Kmove IT스페셜리스트 (2022.04 ~ 2022.12)
-
 ### [Kmove 과제 및 공부자료](https://github.com/juyangjin/2022_Kmove)
+- 설명 : kmove 과정에서 공부한 자료들입니다.
 
 ## 📚 스파르타 코딩클럽(2024.11~ 2025.3)
 ### [1주차 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
