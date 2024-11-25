@@ -1,0 +1,29 @@
+name: Update Learning Log
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 자정 실행
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Update README
+      run: |
+        echo "## 👋 Hi, I'm [Your Name]" > README.md
+        echo "" >> README.md
+        echo "### 🕒 Recent Activity" >> README.md
+        echo "- Studied programming for 2 hours on $(date '+%Y-%m-%d')." >> README.md
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add README.md
+        git commit -m "Update learning log"
+        git push
