@@ -64,16 +64,15 @@ def get_color_block(hours):
 # 주간 학습 기록 표 생성
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
-    today = datetime.now()
-
-    # 날짜 범위 계산
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
+    
     chart = ""
-
     for repo, log in logs.items():
         chart += f"### {repo}\n"
-        chart += "<div style='display:flex;align-items:center;'>\n"
+        chart += " ".join(get_color_block(log.get(date, 0)) for date in date_range)
+        chart += f"  **{sum(log.get(date, 0) for date in date_range)}시간 공부**\n\n"
 
+    return chart
         # 날짜별 학습 시간 및 색상 블록
         for date in date_range:
             hours = log.get(date, 0)
