@@ -22,6 +22,25 @@ fixed_content = """# My GitHub Portfolio
 ### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
 - 설명 : '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
 
+## Kmove IT스페셜리스트 (2022.04 ~ 2022.12)
+### [Kmove 과제 및 공부자료](https://github.com/juyangjin/2022_Kmove)
+- 설명 : kmove 과정에서 공부한 자료들입니다.
+
+## 📚 스파르타 코딩클럽(2024.11~ 2025.3)
+### [1주차 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
+- 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
+
+### [개인 과제](https://github.com/juyangjin/personal_assignment)
+- 설명: 스파르타 코딩클럽에서 진행한 개인과제
+
+## 📑 과제 페이지
+### [대학과제](https://github.com/juyangjin/BU-2017-2022)
+- 설명: 대학 과제 및 프로젝트 작업물입니다.
+
+## 그 외
+### [이게뭐지?_에러모음](https://github.com/juyangjin/Error)
+- 설명 : 에러가 안 풀렸을 때나, 미완성인 코드를 업로드하는 공간입니다.
+
 ---
 
 ## 📊 주간 학습 기록
@@ -49,39 +68,50 @@ study_logs = {
     }
 }
 
-# 색상 블록 생성
-def get_color_block(hours):
+# 색상 선택 (SVG 스타일)
+def get_color(hours):
     if hours == 0:
-        color = "#ebedf0"
+        return "#ebedf0"  # 잔디 기본 색상
     elif 1 <= hours <= 2:
-        color = "#9be9a8"
+        return "#9be9a8"  # 연한 초록
     elif 3 <= hours <= 4:
-        color = "#40c463"
-    else:  # hours >= 5
-        color = "#216e39"
-    return f'<span style="display:inline-block;width:15px;height:15px;background-color:{color};margin:0 2px;border-radius:2px;"></span>'
+        return "#40c463"  # 중간 초록
+    else:
+        return "#216e39"  # 진한 초록
 
-# 주간 학습 기록 표 생성
+# SVG 생성
+def generate_svg_chart(logs):
+    one_week_ago = datetime.now() - timedelta(days=7)
+    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
+    
+    svg_content = '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">\n'
+    y_pos = 0  # Y축 (세로 위치)
+    
+    for repo, log in logs.items():
+        x_pos = 0  # X축 (가로 위치)
+        svg_content += f"<!-- {repo} -->\n"
+        
+        for date in date_range:
+            hours = log.get(date, 0)
+            color = get_color(hours)
+            svg_content += f'<rect x="{x_pos}" y="{y_pos}" width="15" height="15" style="fill:{color};stroke-width:1;stroke:#ccc;" />\n'
+            x_pos += 17  # 블록 간격 추가
+        
+        y_pos += 20  # 다음 줄로 이동
+    svg_content += "</svg>"
+    return svg_content
+
+# Markdown에 SVG 삽입
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
     
     chart = ""
     for repo, log in logs.items():
+        total_hours = sum(log.get(date, 0) for date in date_range)
         chart += f"### {repo}\n"
-        chart += " ".join(get_color_block(log.get(date, 0)) for date in date_range)
-        chart += f"  **{sum(log.get(date, 0) for date in date_range)}시간 공부**\n\n"
-
-    return chart
-        # 날짜별 학습 시간 및 색상 블록
-        for date in date_range:
-            hours = log.get(date, 0)
-            chart += get_color_block(hours)
-
-        # 총 학습 시간 표시
-        total_hours = sum(hours for date, hours in log.items() if date in date_range)
-        chart += f"&nbsp; <strong>{total_hours}시간 공부</strong>\n</div>\n\n"
-
+        chart += f"{generate_svg_chart({repo: log})}\n\n"
+        chart += f"총 학습 시간: **{total_hours}시간**\n\n"
     return chart
 
 # 주간 학습 기록 생성
