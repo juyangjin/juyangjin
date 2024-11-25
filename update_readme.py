@@ -69,7 +69,7 @@ study_logs = {
 # 색상 선택 (SVG 스타일)
 def get_color(hours):
     if hours == 0:
-        return "#ebedf0"  # 잔디 기본 색상
+        return "#ebedf0"  # 기본 색상
     elif 1 <= hours <= 2:
         return "#9be9a8"  # 연한 초록
     elif 3 <= hours <= 4:
@@ -78,28 +78,26 @@ def get_color(hours):
         return "#216e39"  # 진한 초록
 
 # SVG 생성
-def generate_svg_chart(logs):
+def generate_svg_chart(repo, log, file_path):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
     
     svg_content = '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">\n'
-    y_pos = 0  # Y축 (세로 위치)
-    
-    for repo, log in logs.items():
-        x_pos = 0  # X축 (가로 위치)
-        svg_content += f"<!-- {repo} -->\n"
-        
-        for date in date_range:
-            hours = log.get(date, 0)
-            color = get_color(hours)
-            svg_content += f'<rect x="{x_pos}" y="{y_pos}" width="15" height="15" style="fill:{color};stroke-width:1;stroke:#ccc;" />\n'
-            x_pos += 17  # 블록 간격 추가
-        
-        y_pos += 20  # 다음 줄로 이동
-    svg_content += "</svg>"
-    return svg_content
+    x_pos = 0
 
-# Markdown에 SVG 삽입
+    for date in date_range:
+        hours = log.get(date, 0)
+        color = get_color(hours)
+        svg_content += f'<rect x="{x_pos}" y="0" width="15" height="15" style="fill:{color};stroke-width:1;stroke:#ccc;" />\n'
+        x_pos += 17  # 블록 간격 추가
+
+    svg_content += "</svg>"
+
+    # SVG 파일 저장
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(svg_content)
+
+# Markdown에 이미지 삽입
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
@@ -107,10 +105,16 @@ def generate_weekly_study_chart(logs):
     chart = ""
     for repo, log in logs.items():
         total_hours = sum(log.get(date, 0) for date in date_range)
-        svg = generate_svg_chart({repo: log})  # SVG 생성
-        chart += f"### {repo}\n"  # 제목 추가
-        chart += svg  # SVG 삽입
-        chart += f"\n\n총 학습 시간: **{total_hours}시간**\n\n"
+        file_name = f"{repo.replace(' ', '_')}.svg"
+        file_path = os.path.join(os.getcwd(), file_name)
+        
+        # SVG 생성 및 저장
+        generate_svg_chart(repo, log, file_path)
+        
+        # Markdown에 이미지 삽입
+        chart += f"### {repo}\n"
+        chart += f'![{repo} Chart](./{file_name})\n'
+        chart += f"\n총 학습 시간: **{total_hours}시간**\n\n"
     return chart
 
 # 주간 학습 기록 생성
@@ -121,4 +125,3 @@ with open("README.md", "w", encoding="utf-8") as f:
     f.write(fixed_content)
     f.write("\n")
     f.write(weekly_chart)
-
