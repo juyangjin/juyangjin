@@ -41,47 +41,17 @@
 ## 📊 주간 학습 기록
 
 ### Coding-Test
-<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
-<!-- Coding-Test -->
-<rect x="0" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="17" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="34" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
-<rect x="51" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="68" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
-<rect x="85" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="102" y="0" width="15" height="15" style="fill:#216e39;stroke-width:1;stroke:#ccc;" />
-<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-</svg>
+![Coding-Test Chart](./Coding-Test.svg)
 
 총 학습 시간: **15시간**
 
 ### Code-Tree
-<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
-<!-- Code-Tree -->
-<rect x="0" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="17" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="34" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="51" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="68" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="85" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
-<rect x="102" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-</svg>
+![Code-Tree Chart](./Code-Tree.svg)
 
 총 학습 시간: **7시간**
 
 ### Study
-<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
-<!-- Study -->
-<rect x="0" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="17" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="34" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="51" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="68" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
-<rect x="85" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-<rect x="102" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
-<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
-</svg>
+![Study Chart](./Study.svg)
 
 총 학습 시간: **6시간**
 
