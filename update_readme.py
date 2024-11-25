@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import os
 
 # 고정된 README 내용
 fixed_content = """# My GitHub Portfolio
