@@ -105,13 +105,14 @@ def generate_svg_chart(logs):
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
-    
+
     chart = ""
     for repo, log in logs.items():
         total_hours = sum(log.get(date, 0) for date in date_range)
-        chart += f"### {repo}\n"
-        chart += f"{generate_svg_chart({repo: log})}\n\n"
-        chart += f"총 학습 시간: **{total_hours}시간**\n\n"
+        svg = generate_svg_chart({repo: log})  # SVG 생성
+        chart += f"### {repo}\n"  # 제목 추가
+        chart += svg  # SVG 삽입
+        chart += f"\n\n총 학습 시간: **{total_hours}시간**\n\n"
     return chart
 
 # 주간 학습 기록 생성
