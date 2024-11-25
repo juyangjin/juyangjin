@@ -59,7 +59,7 @@ def get_color_block(hours):
         color = "#40c463"
     else:  # hours >= 5
         color = "#216e39"
-    return f'<span style="display:inline-block;width:15px;height:15px;background-color:{color};border-radius:3px;margin:0 2px;"></span>'
+    return f'<span style="display:inline-block;width:15px;height:15px;background-color:{color};margin:0 2px;border-radius:2px;"></span>'
 
 # 주간 학습 기록 표 생성
 def generate_weekly_study_chart(logs):
@@ -81,7 +81,7 @@ def generate_weekly_study_chart(logs):
 
         # 총 학습 시간 표시
         total_hours = sum(hours for date, hours in log.items() if date in date_range)
-        chart += f"&nbsp; {total_hours}시간 공부\n</div>\n\n"
+        chart += f"&nbsp; <strong>{total_hours}시간 공부</strong>\n</div>\n\n"
 
     return chart
 
