@@ -67,22 +67,22 @@ study_logs = {
     }
 }
 
-# 색상 선택 (SVG 스타일)
+# 색상 선택
 def get_color(hours):
     if hours == 0:
-        return "#ebedf0"  # 기본 색상
+        return "#ebedf0"
     elif 1 <= hours <= 2:
-        return "#9be9a8"  # 연한 초록
+        return "#9be9a8"
     elif 3 <= hours <= 4:
-        return "#40c463"  # 중간 초록
+        return "#40c463"
     else:
-        return "#216e39"  # 진한 초록
+        return "#216e39"
 
 # SVG 생성
 def generate_svg_chart(repo, log, file_path):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
-    
+
     svg_content = '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">\n'
     x_pos = 0
 
@@ -94,28 +94,17 @@ def generate_svg_chart(repo, log, file_path):
 
     svg_content += "</svg>"
 
-    # SVG 파일 저장
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(svg_content)
 
-# Markdown에 이미지 삽입
+# Markdown 생성
 def generate_weekly_study_chart(logs):
-    one_week_ago = datetime.now() - timedelta(days=7)
-    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
-
     chart = ""
     for repo, log in logs.items():
-        total_hours = sum(log.get(date, 0) for date in date_range)
+        total_hours = sum(log.get(date, 0) for date in log.keys())
         file_name = f"{repo.replace(' ', '_')}.svg"
-        file_path = os.path.join(os.getcwd(), file_name)
-        
-        # SVG 생성 및 저장
-        generate_svg_chart(repo, log, file_path)
-        
-        # Markdown에 이미지 삽입
-        chart += f"### {repo}\n"
-        chart += f'![{repo} Chart](./{file_name})\n'
-        chart += f"\n총 학습 시간: **{total_hours}시간**\n\n"
+        generate_svg_chart(repo, log, file_name)
+        chart += f"### {repo}\n![{repo} Chart](./{file_name})\n\n총 학습 시간: **{total_hours}시간**\n\n"
     return chart
 
 # 주간 학습 기록 생성
