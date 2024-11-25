@@ -19,22 +19,71 @@
 ### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
 - 설명 : '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
 
+## Kmove IT스페셜리스트 (2022.04 ~ 2022.12)
+### [Kmove 과제 및 공부자료](https://github.com/juyangjin/2022_Kmove)
+- 설명 : kmove 과정에서 공부한 자료들입니다.
+
+## 📚 스파르타 코딩클럽(2024.11~ 2025.3)
+### [1주차 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
+- 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
+
+### [개인 과제](https://github.com/juyangjin/personal_assignment)
+- 설명: 스파르타 코딩클럽에서 진행한 개인과제
+
+## 📑 과제 페이지
+### [대학과제](https://github.com/juyangjin/BU-2017-2022)
+- 설명: 대학 과제 및 프로젝트 작업물입니다.
+
+## 그 외
+### [이게뭐지?_에러모음](https://github.com/juyangjin/Error)
+- 설명 : 에러가 안 풀렸을 때나, 미완성인 코드를 업로드하는 공간입니다.
+
 ---
 
 ## 📊 주간 학습 기록
 
 ### Coding-Test
-<div style='display:flex;align-items:center;'>
-<span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#40c463;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#40c463;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#216e39;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span>&nbsp; <strong>15시간 공부</strong>
-</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
+<!-- Coding-Test -->
+<rect x="0" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="17" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="34" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
+<rect x="51" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="68" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
+<rect x="85" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="102" y="0" width="15" height="15" style="fill:#216e39;stroke-width:1;stroke:#ccc;" />
+<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+</svg>
+
+총 학습 시간: **15시간**
 
 ### Code-Tree
-<div style='display:flex;align-items:center;'>
-<span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#40c463;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span>&nbsp; <strong>7시간 공부</strong>
-</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
+<!-- Code-Tree -->
+<rect x="0" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="17" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="34" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="51" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="68" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="85" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
+<rect x="102" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+</svg>
+
+총 학습 시간: **7시간**
 
 ### Study
-<div style='display:flex;align-items:center;'>
-<span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#40c463;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#9be9a8;margin:0 2px;border-radius:2px;"></span><span style="display:inline-block;width:15px;height:15px;background-color:#ebedf0;margin:0 2px;border-radius:2px;"></span>&nbsp; <strong>6시간 공부</strong>
-</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="20">
+<!-- Study -->
+<rect x="0" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="17" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="34" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="51" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="68" y="0" width="15" height="15" style="fill:#40c463;stroke-width:1;stroke:#ccc;" />
+<rect x="85" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+<rect x="102" y="0" width="15" height="15" style="fill:#9be9a8;stroke-width:1;stroke:#ccc;" />
+<rect x="119" y="0" width="15" height="15" style="fill:#ebedf0;stroke-width:1;stroke:#ccc;" />
+</svg>
+
+총 학습 시간: **6시간**
 
