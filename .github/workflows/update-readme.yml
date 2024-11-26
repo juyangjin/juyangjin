@@ -2,7 +2,7 @@ name: Update README
 
 on:
   schedule:
-    - cron: "0 0 * * 1"  # 매주 월요일 00:00에 실행
+    - cron: "0 0 * * *"  # 매일 자정에 실행
   workflow_dispatch:  # 수동 실행 가능
 
 jobs:
@@ -17,9 +17,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
-
-    - name: Install dependencies
-      run: pip install -r requirements.txt || true  # 필요한 패키지가 없으므로 통과
 
     - name: Run update script
       run: python update_readme.py
