@@ -40,39 +40,18 @@
 
 ## 📊 주간 학습 기록
 
-<table>
-<tr>
+### Coding-Test
+학습 기록: 🟢 🟡 ⚪ 🟡 ⚪ 🔴 ⚪ ⚪ 
 
-        <td>
-            <a href="https://github.com/juyangjin/Coding-Test">
-                <b>Coding-Test</b>
-            </a>
-            <br>
-            🟢🟡⚪🟡⚪🔴⚪
-            <br>
-            <sub>Total study hours: 13 hrs</sub>
-        </td>
-        
-        <td>
-            <a href="https://github.com/juyangjin/Code-Tree">
-                <b>Code-Tree</b>
-            </a>
-            <br>
-            🟢⚪🟢⚪🟡⚪⚪
-            <br>
-            <sub>Total study hours: 6 hrs</sub>
-        </td>
-        
-        <td>
-            <a href="https://github.com/juyangjin/Study">
-                <b>Study</b>
-            </a>
-            <br>
-            ⚪🟢⚪🟡⚪🟢⚪
-            <br>
-            <sub>Total study hours: 6 hrs</sub>
-        </td>
-        </tr>
-<tr>
-</tr>
-</table>
+총 학습 시간: **13시간**
+
+### Code-Tree
+학습 기록: 🟢 ⚪ 🟢 ⚪ 🟡 ⚪ ⚪ ⚪ 
+
+총 학습 시간: **6시간**
+
+### Study
+학습 기록: ⚪ 🟢 ⚪ 🟡 ⚪ 🟢 ⚪ ⚪ 
+
+총 학습 시간: **6시간**
+
