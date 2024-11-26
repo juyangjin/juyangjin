@@ -41,7 +41,6 @@ fixed_content = """# My GitHub Portfolio
 ### [이게뭐지?_에러모음](https://github.com/juyangjin/Error)
 - 설명 : 에러가 안 풀렸을 때나, 미완성인 코드를 업로드하는 공간입니다.
 
-
 ## 📊 주간 학습 기록
 """
 
