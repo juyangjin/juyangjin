@@ -77,42 +77,30 @@ def get_emoji(hours):
     else:
         return "🔴"
 
-# 학습 기록을 Popular repositories 형식으로 변환
-def generate_popular_repositories(logs):
+# 주간 학습 기록 생성
+def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
-    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
 
-    table = '<table>\n<tr>\n'
-    for idx, (repo, log) in enumerate(logs.items()):
-        # 학습 시간 및 이모지 기록
-        weekly_summary = "".join(get_emoji(log.get(date, 0)) for date in date_range)
+    chart = ""
+    for repo, log in logs.items():
+        chart += f"### {repo}\n"
+        chart += "학습 기록: "
+        
+        for date in date_range:
+            hours = log.get(date, 0)
+            chart += get_emoji(hours) + " "
+        
         total_hours = sum(log.get(date, 0) for date in date_range)
-
-        # 레포지토리 스타일 카드 생성
-        table += f"""
-        <td>
-            <a href="https://github.com/juyangjin/{repo}">
-                <b>{repo}</b>
-            </a>
-            <br>
-            {weekly_summary}
-            <br>
-            <sub>Total study hours: {total_hours} hrs</sub>
-        </td>
-        """
-
-        # 카드가 한 줄에 3개씩만 표시되도록 설정
-        if (idx + 1) % 3 == 0:
-            table += '</tr>\n<tr>\n'
-    table += '</tr>\n</table>'
-
-    return table
+        chart += f"\n\n총 학습 시간: **{total_hours}시간**\n\n"
+    
+    return chart
 
 # 주간 학습 기록 생성
-popular_repositories_section = generate_popular_repositories(study_logs)
+weekly_chart = generate_weekly_study_chart(study_logs)
 
 # README 업데이트
 with open("README.md", "w", encoding="utf-8") as f:
     f.write(fixed_content)
     f.write("\n")
-    f.write(popular_repositories_section)
+    f.write(weekly_chart)
