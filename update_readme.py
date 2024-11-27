@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 # 고정된 README 내용
@@ -79,7 +80,7 @@ def get_emoji(hours):
 
 # 주간 학습 기록 생성
 def generate_weekly_study_chart(logs):
-    one_week_ago = datetime.now() - timedelta(days=7)
+    one_week_ago = datetime.now() - timedelta(days=6)  # 오늘 포함 7일
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
 
     chart = ""
@@ -96,11 +97,26 @@ def generate_weekly_study_chart(logs):
     
     return chart
 
-# 주간 학습 기록 생성
-weekly_chart = generate_weekly_study_chart(study_logs)
+# 기존 README 템플릿 로드
+def update_readme():
+    template_path = "README_template.md"
+    readme_path = "README.md"
+    
+    if os.path.exists(template_path):
+        with open(template_path, "r", encoding="utf-8") as template_file:
+            fixed_content = template_file.read()
+    else:
+        fixed_content = "## 📊 주간 학습 기록\n\n"
 
-# README 업데이트
-with open("README.md", "w", encoding="utf-8") as f:
-    f.write(fixed_content)
-    f.write("\n")
-    f.write(weekly_chart)
+    # 주간 학습 기록 생성
+    weekly_chart = generate_weekly_study_chart(study_logs)
+
+    # README 업데이트
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(fixed_content)
+        f.write("\n")
+        f.write(weekly_chart)
+
+# 스크립트 실행
+if __name__ == "__main__":
+    update_readme()
