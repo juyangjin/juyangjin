@@ -1,7 +1,0 @@
-Coding-Test,2024-11-18,2
-Code-Tree,2024-11-19,1
-Study,2024-11-20,3
-JAVA-s-Study,2024-11-20,4
-Coding-Test,2024-11-22,3
-Code-Tree,2024-11-23,2
-Study,2024-11-24,1
