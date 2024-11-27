@@ -2,6 +2,7 @@ name: Update README
 
 on:
   schedule:
+
     - cron: "0 0 * * *"  # 매일 자정 실행
   workflow_dispatch:  # 수동 실행
 

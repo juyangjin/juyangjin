@@ -120,5 +120,6 @@ def update_readme():
         f.write("\n")
         f.write(weekly_chart)
 
+
 # 실행
 update_readme()
