@@ -1,8 +1,27 @@
 import json
+import requests
 from datetime import datetime, timedelta
 
 # JSON 파일 경로
 LOG_FILE = "study_logs.json"
+
+# GitHub 사용자 정보
+GITHUB_USERNAME = "juyangjin"
+GITHUB_TOKEN = "your_github_personal_access_token"  # 필수: 토큰 발급 필요
+
+# GitHub API를 통해 레포지토리 목록 가져오기
+def fetch_repositories(username):
+    url = f"https://api.github.com/users/{username}/repos"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        repos = response.json()
+        return [repo['name'] for repo in repos]
+    else:
+        print(f"Failed to fetch repositories: {response.status_code}")
+        return []
 
 # JSON 파일에서 학습 데이터 로드
 def load_study_logs(file_path):
@@ -17,23 +36,19 @@ def save_study_logs(logs, file_path):
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(logs, f, indent=4, ensure_ascii=False)
 
-# 오늘의 학습 데이터를 추가
-def update_daily_log(logs, category, hours):
-    today = datetime.now().strftime("%Y-%m-%d")
-    if category not in logs:
-        logs[category] = {}
-    logs[category][today] = logs[category].get(today, 0) + hours
+# 학습 데이터에 새 레포지토리 추가
+def merge_new_repositories(logs, repositories):
+    for repo in repositories:
+        if repo not in logs:
+            logs[repo] = {}  # 새로운 레포지토리는 빈 데이터로 추가
+    return logs
 
-# 이모지 매핑 함수
-def get_emoji(hours):
-    if hours == 0:
-        return "⚪"
-    elif 1 <= hours <= 2:
-        return "🟢"
-    elif 3 <= hours <= 4:
-        return "🟡"
-    else:
-        return "🔴"
+# 오늘의 학습 데이터를 추가
+def update_daily_log(logs, repo, hours):
+    today = datetime.now().strftime("%Y-%m-%d")
+    if repo not in logs:
+        logs[repo] = {}
+    logs[repo][today] = logs[repo].get(today, 0) + hours
 
 # 최근 일주일 기록 생성
 def generate_weekly_study_chart(logs):
@@ -54,15 +69,31 @@ def generate_weekly_study_chart(logs):
     
     return chart
 
+# 이모지 매핑 함수
+def get_emoji(hours):
+    if hours == 0:
+        return "⚪"
+    elif 1 <= hours <= 2:
+        return "🟢"
+    elif 3 <= hours <= 4:
+        return "🟡"
+    else:
+        return "🔴"
+
 # 학습 데이터 갱신 및 README 업데이트
 def update_readme():
     # 학습 데이터 로드
     logs = load_study_logs(LOG_FILE)
-    
-    # 오늘 학습 데이터 업데이트 (예: 사용자 입력으로 대체 가능)
+
+    # GitHub에서 레포지토리 목록 가져오기
+    repositories = fetch_repositories(GITHUB_USERNAME)
+
+    # 새 레포지토리를 기존 데이터에 병합
+    logs = merge_new_repositories(logs, repositories)
+
+    # 오늘 학습 데이터 업데이트 (예시: 사용자 입력)
     update_daily_log(logs, "Coding-Test", 2)
-    update_daily_log(logs, "Code-Tree", 1)
-    update_daily_log(logs, "Study", 3)
+    update_daily_log(logs, "Study", 1)
 
     # 데이터 저장
     save_study_logs(logs, LOG_FILE)
@@ -119,7 +150,6 @@ def update_readme():
         f.write(fixed_content)
         f.write("\n")
         f.write(weekly_chart)
-
 
 # 실행
 update_readme()
