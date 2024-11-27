@@ -1,7 +1,77 @@
+import json
 from datetime import datetime, timedelta
 
-# 고정된 README 내용
-fixed_content = """# My GitHub Portfolio
+# JSON 파일 경로
+LOG_FILE = "study_logs.json"
+
+# JSON 파일에서 학습 데이터 로드
+def load_study_logs(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# JSON 파일에 학습 데이터 저장
+def save_study_logs(logs, file_path):
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(logs, f, indent=4, ensure_ascii=False)
+
+# 오늘의 학습 데이터를 추가
+def update_daily_log(logs, category, hours):
+    today = datetime.now().strftime("%Y-%m-%d")
+    if category not in logs:
+        logs[category] = {}
+    logs[category][today] = logs[category].get(today, 0) + hours
+
+# 이모지 매핑 함수
+def get_emoji(hours):
+    if hours == 0:
+        return "⚪"
+    elif 1 <= hours <= 2:
+        return "🟢"
+    elif 3 <= hours <= 4:
+        return "🟡"
+    else:
+        return "🔴"
+
+# 최근 일주일 기록 생성
+def generate_weekly_study_chart(logs):
+    one_week_ago = datetime.now() - timedelta(days=7)
+    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+
+    chart = ""
+    for repo, log in logs.items():
+        chart += f"### {repo}\n"
+        chart += "학습 기록: "
+        
+        for date in date_range:
+            hours = log.get(date, 0)
+            chart += get_emoji(hours) + " "
+        
+        total_hours = sum(log.get(date, 0) for date in date_range)
+        chart += f"\n\n총 학습 시간: **{total_hours}시간**\n\n"
+    
+    return chart
+
+# 학습 데이터 갱신 및 README 업데이트
+def update_readme():
+    # 학습 데이터 로드
+    logs = load_study_logs(LOG_FILE)
+    
+    # 오늘 학습 데이터 업데이트 (예: 사용자 입력으로 대체 가능)
+    update_daily_log(logs, "Coding-Test", 2)
+    update_daily_log(logs, "Code-Tree", 1)
+    update_daily_log(logs, "Study", 3)
+
+    # 데이터 저장
+    save_study_logs(logs, LOG_FILE)
+
+    # 주간 학습 기록 생성
+    weekly_chart = generate_weekly_study_chart(logs)
+
+    # 고정된 README 내용
+    fixed_content = """# My GitHub Portfolio
 
 👋 백석대학교 컴퓨터공학부 정보보호학과 졸업 후 백엔드 개발자를 목표로 공부하고 있습니다. :)  
 모바일과 웹 위주의 공부를 하고 있고, 관심있는 언어는 C, JAVA 입니다.  
@@ -41,67 +111,14 @@ fixed_content = """# My GitHub Portfolio
 ### [이게뭐지?_에러모음](https://github.com/juyangjin/Error)
 - 설명 : 에러가 안 풀렸을 때나, 미완성인 코드를 업로드하는 공간입니다.
 
-
-## 📊 주간 학습 기록
+## 📑 주간 학습 기록
 """
 
-# 학습 데이터
-study_logs = {
-    "Coding-Test": {
-        "2024-11-18": 2,
-        "2024-11-19": 1,
-        "2024-11-20": 3,
-        "2024-11-22": 4,
-        "2024-11-24": 5
-    },
-    "Code-Tree": {
-        "2024-11-18": 1,
-        "2024-11-19": 2,
-        "2024-11-21": 1,
-        "2024-11-23": 3
-    },
-    "Study": {
-        "2024-11-20": 2,
-        "2024-11-22": 3,
-        "2024-11-24": 1
-    }
-}
+    # README 업데이트
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(fixed_content)
+        f.write("\n")
+        f.write(weekly_chart)
 
-# 이모지 매핑 함수
-def get_emoji(hours):
-    if hours == 0:
-        return "⚪"
-    elif 1 <= hours <= 2:
-        return "🟢"
-    elif 3 <= hours <= 4:
-        return "🟡"
-    else:
-        return "🔴"
-
-# 주간 학습 기록 생성
-def generate_weekly_study_chart(logs):
-    one_week_ago = datetime.now() - timedelta(days=7)
-    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
-
-    chart = ""
-    for repo, log in logs.items():
-        chart += f"### {repo}\n"
-        chart += "학습 기록: "
-        
-        for date in date_range:
-            hours = log.get(date, 0)
-            chart += get_emoji(hours) + " "
-        
-        total_hours = sum(log.get(date, 0) for date in date_range)
-        chart += f"\n\n총 학습 시간: **{total_hours}시간**\n\n"
-    
-    return chart
-
-# 주간 학습 기록 생성
-weekly_chart = generate_weekly_study_chart(study_logs)
-
-# README 업데이트
-with open("README.md", "w", encoding="utf-8") as f:
-    f.write(fixed_content)
-    f.write("\n")
-    f.write(weekly_chart)
+# 실행
+update_readme()
