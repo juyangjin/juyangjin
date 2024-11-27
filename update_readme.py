@@ -80,7 +80,7 @@ def get_emoji(hours):
 # 주간 학습 기록 생성
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
-    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
+    date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
 
     chart = ""
     for repo, log in logs.items():
