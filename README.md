@@ -13,9 +13,6 @@
 - 설명: 코드트리 알고리즘 문제 풀이를 다룹니다.
 
 ## 🧠 개인 공부
-### [개인 공부](https://github.com/juyangjin/study)
-- 설명: Java 위주 공부와 프로젝트입니다.
-
 ### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
 - 설명 : '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
 
@@ -26,6 +23,9 @@
 ## 📚 스파르타 코딩클럽(2024.11~ 2025.3)
 ### [1주차 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
 - 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
+
+### [강의 과제](https://github.com/juyangjin/study)
+- 설명: Java 위주 공부와 코딩클럽 강의 관련 프로젝트입니다.
 
 ### [개인 과제](https://github.com/juyangjin/personal_assignment)
 - 설명: 스파르타 코딩클럽에서 진행한 개인과제
