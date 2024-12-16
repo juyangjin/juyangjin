@@ -21,10 +21,10 @@
 ### [1주차 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
 - 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
 
-### [강의 과제 1~3](https://github.com/juyangjin/study)
+### [강의 과제](https://github.com/juyangjin/study)
 - 설명: Java 위주 공부와 코딩클럽 강의 관련 프로젝트입니다.
 
-### [개인 과제](https://github.com/juyangjin/personal_assignment)
+### [개인 과제 1~3](https://github.com/juyangjin/personal_assignment)
 - 설명: 스파르타 코딩클럽에서 진행한 개인과제
 
 ## 📑 과제 페이지
