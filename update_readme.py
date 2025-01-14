@@ -92,8 +92,7 @@ def update_readme():
     logs = merge_new_repositories(logs, repositories)
 
     # 오늘 학습 데이터 업데이트 (예시: 사용자 입력)
-    update_daily_log(logs, "Coding-Test", 2)
-    update_daily_log(logs, "Study", 1)
+    update_daily_log(logs, "proejcet", 1)
 
     # 데이터 저장
     save_study_logs(logs, LOG_FILE)
