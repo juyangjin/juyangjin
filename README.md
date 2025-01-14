@@ -24,6 +24,9 @@
 ### [chapter3-1. 코드족(?)팀](https://github.com/cnux9/Newsfeed)
 - 설명 : 스파르타 코딩클럽 7,8주차 기초프로젝트 일정관리앱 과제
 
+### [chapter 4. 채찍의 민족](https://github.com/roqkfchqh/outsourcing)
+- 설명 : 스파르타 코딩클럽 10주차 주특기 심화 프로젝트 아웃소싱 프로젝트 과제 
+
 ### [강의 과제](https://github.com/juyangjin/study)
 - 설명: Java 위주 공부와 코딩클럽 강의 관련 프로젝트입니다.
 
