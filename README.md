@@ -17,7 +17,7 @@
 ### [Kmove 과제 및 공부자료](https://github.com/juyangjin/2022_Kmove)
 - 설명 : kmove 과정에서 공부한 자료들입니다.
 
-## 📚 스파르타 코딩클럽(2024.11~ 2025.3)
+## 📚 스파르타 코딩클럽 Spring&Kotlin 4기(2024.11~ 2025.3)
 ### [chapter1. 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
 - 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
 
@@ -27,24 +27,19 @@
 ### [chapter 4. 채찍의 민족](https://github.com/roqkfchqh/outsourcing)
 - 설명 : 스파르타 코딩클럽 10주차 주특기 심화 프로젝트 아웃소싱 프로젝트 과제 
 
-### [강의 과제](https://github.com/juyangjin/study)
-- 설명: Java 위주 공부와 코딩클럽 강의 관련 프로젝트입니다.
-
-### [개인 과제 1~3](https://github.com/juyangjin/personal_assignment)
-- 설명: 스파르타 코딩클럽에서 진행한 개인과제
+## 📚 스파르타 코딩클럽 JAVA 단기심화 4기(2025.9~ 2025.12)
+## [프로젝트 1]
+- 설명 : 
+## [프로젝트 2]
+- 설명 : 
+## [프로젝트 3]
+- 설명 : 
 
 ## 📑 과제 페이지
 ### [대학과제](https://github.com/juyangjin/BU-2017-2022)
 - 설명: 대학 과제 및 프로젝트 작업물입니다.
 
-## 그 외
-### [이게뭐지?_에러모음](https://github.com/juyangjin/Error)
-- 설명 : 에러가 안 풀렸을 때나, 미완성인 코드를 업로드하는 공간입니다.
-
-## 📑 주간 학습 기록
 
 ### projcet
-학습 기록: 🟢 🟢 🟢 🟢 🟢 🟢 🟢 
-
 총 학습 시간: **7시간**
 
