@@ -50,7 +50,7 @@ def update_daily_log(logs, repo, hours):
         logs[repo] = {}
     logs[repo][today] = logs[repo].get(today, 0) + hours
 
-# 최근 일주일 기록 생성 (총 학습 시간만 표시)
+# 최근 일주일 기록 생성 (총합만 표시)
 def generate_weekly_study_chart(logs):
     one_week_ago = datetime.now() - timedelta(days=7)
     date_range = [(one_week_ago + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
@@ -58,12 +58,10 @@ def generate_weekly_study_chart(logs):
     chart = ""
     for repo, log in logs.items():
         chart += f"### {repo}\n"
-        
         total_hours = sum(log.get(date, 0) for date in date_range)
         chart += f"총 학습 시간: **{total_hours}시간**\n\n"
     
     return chart
-
 
 # 학습 데이터 갱신 및 README 업데이트
 def update_readme():
@@ -132,6 +130,6 @@ def update_readme():
     with open("README.md", "w", encoding="utf-8") as f:
         f.write(fixed_content + "\n\n" + weekly_chart)
 
+
 # 실행
 update_readme()
-
