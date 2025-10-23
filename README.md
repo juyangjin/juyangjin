@@ -18,16 +18,10 @@
 - 설명 : kmove 과정에서 공부한 자료들입니다.
 
 ## 📚 스파르타 코딩클럽 Spring&Kotlin 4기(2024.11~ 2025.3)
-### [chapter1. 웹개발 희망편](https://github.com/DeaHyun0911/sparta-web-team)
-- 설명 : 스파르타 코딩클럽 1주차 웹개발 과제
+### [11War-Shop](https://github.com/11war/11war-shop)
+- 설명 : E-Commerce 서비스 프로젝트 
 
-### [chapter3-1. 코드족(?)팀](https://github.com/cnux9/Newsfeed)
-- 설명 : 스파르타 코딩클럽 7,8주차 기초프로젝트 일정관리앱 과제
-
-### [chapter 4. 채찍의 민족](https://github.com/roqkfchqh/outsourcing)
-- 설명 : 스파르타 코딩클럽 10주차 주특기 심화 프로젝트 아웃소싱 프로젝트 과제 
-
-### [최종 프로젝트 - Cheer-ha](https://github.com/cheer-ha/cheer-ha)
+### [Cheer-ha](https://github.com/cheer-ha/cheer-ha)
 - 설명 : 취업을 위하여! 사용자 맞춤형 취업정보 제공 서비스
 
 ## 📚 스파르타 코딩클럽 JAVA 단기심화 4기(2025.9~ 2025.12)
