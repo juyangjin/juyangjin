@@ -104,10 +104,10 @@ def update_readme():
 - 설명 : kmove 과정에서 공부한 자료들입니다.
 
 ## 📚 스파르타 코딩클럽 Spring&Kotlin 4기(2024.11~ 2025.3)
-### [chapter 5. 11War-Shop](https://github.com/11war/11war-shop)
-- 설명 : 쇼핑몰 프로젝트
+### [11War-Shop](https://github.com/11war/11war-shop)
+- 설명 : E-Commerce 서비스 프로젝트 
 
-### [최종 프로젝트 - Cheer-ha](https://github.com/cheer-ha/cheer-ha)
+### [Cheer-ha](https://github.com/cheer-ha/cheer-ha)
 - 설명 : 취업을 위하여! 사용자 맞춤형 취업정보 제공 서비스
 
 ## 📚 스파르타 코딩클럽 JAVA 단기심화 4기(2025.9~ 2025.12)
