@@ -113,14 +113,16 @@ def update_readme():
 ### [chapter 4. 채찍의 민족](https://github.com/roqkfchqh/outsourcing)
 - 설명 : 스파르타 코딩클럽 10주차 주특기 심화 프로젝트 아웃소싱 프로젝트 과제 
 
-### [최종 프로젝트. Cheer-ha](https://github.com/cheer-ha/cheer-ha)
+### [최종 프로젝트 - Cheer-ha](https://github.com/cheer-ha/cheer-ha)
 - 설명 : 취업을 위하여! 사용자 맞춤형 취업정보 제공 서비스
 
 ## 📚 스파르타 코딩클럽 JAVA 단기심화 4기(2025.9~ 2025.12)
 ## [WhyNComing?](https://github.com/WhyWorking2/why-n-coming)
 - 설명 : 왜 안와? 배민 기반 AI 활용 배달앱 백엔드 프로젝트 
+
 ## [프로젝트 2]
 - 설명 : 
+
 ## [프로젝트 3]
 - 설명 : 
 
