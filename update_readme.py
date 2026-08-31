@@ -18,7 +18,33 @@ if not GITHUB_TOKEN:
     raise RuntimeError("GITHUB_TOKEN 환경변수가 없습니다.")
 
 
-# Git Commit에 표시되는 이름
+# ============================================================
+# 프로젝트 표시 이름
+# ============================================================
+#
+# 실제 GitHub Repository는 owner/repository로 관리하고
+# README에는 프로젝트 이름으로 표시한다.
+#
+# 새로운 프로젝트가 생기면 여기에 추가하면 된다.
+#
+# 예:
+# "organization/backend": "프로젝트명"
+# ============================================================
+
+PROJECT_NAMES = {
+    "juyangjin/JAVA-s-Study": "Java Study",
+    "juyangjin/Coding-Test": "Coding Test",
+    "juyangjin/Code-Tree": "CodeTree",
+
+    "swyp-5th-team9/backend": "모여볼",
+    "swyp-web15-3team/backend": "한일 주류 비교",
+}
+
+
+# ============================================================
+# Commit 작성자
+# ============================================================
+
 GITHUB_AUTHOR_NAMES = {
     "Juyang_Jin",
     "Juyang Jin",
@@ -29,13 +55,13 @@ GITHUB_AUTHOR_NAMES = {
 # 개발시간 계산 기준
 # ============================================================
 
-# 하루에 Commit이 하나뿐인 경우
+# Commit이 하나뿐인 경우
 FIRST_COMMIT_MINUTES = 30
 
 # Commit 사이 최대 인정 시간
 MAX_GAP_MINUTES = 60
 
-# 2시간 이상 공백이면 새로운 개발 세션
+# 2시간 이상 공백이면 새로운 세션
 SESSION_GAP_MINUTES = 120
 
 # 하루 최대 개발시간
@@ -67,7 +93,7 @@ def get_headers():
 
 def fetch_personal_repositories(username):
     """
-    개인 계정 소유 Public Repository 조회
+    개인 계정의 Public Repository 조회
     """
 
     url = f"https://api.github.com/users/{username}/repos"
@@ -109,13 +135,11 @@ def fetch_personal_repositories(username):
 
         for repo in data:
 
-            # Public Repository만
-            if repo.get("private"):
-                continue
+            if not repo.get("private", False):
 
-            repositories.append(
-                repo["full_name"]
-            )
+                repositories.append(
+                    repo["full_name"]
+                )
 
         if len(data) < 100:
             break
@@ -135,15 +159,10 @@ def discover_repositories_from_commits(
     until
 ):
     """
-    GitHub Commit Search를 이용해서
-    최근 기간 동안 사용자가 Commit한 Repository를 발견한다.
+    최근 Commit을 검색하여
+    사용자가 실제로 Commit한 Repository를 찾는다.
 
-    이 방법을 사용하면 Organization Repository도
-    자동으로 발견할 수 있다.
-
-    예:
-        swyp-web15-3team/backend
-        swyp-5th-team9/backend
+    Organization Repository도 발견 가능하다.
     """
 
     url = "https://api.github.com/search/commits"
@@ -156,7 +175,8 @@ def discover_repositories_from_commits(
 
         query = (
             f"author:{username} "
-            f"committer-date:{since.strftime('%Y-%m-%d')}.."
+            f"committer-date:"
+            f"{since.strftime('%Y-%m-%d')}.."
             f"{until.strftime('%Y-%m-%d')}"
         )
 
@@ -176,7 +196,7 @@ def discover_repositories_from_commits(
         if response.status_code != 200:
 
             print(
-                "Commit Search 실패: "
+                f"Commit Search 실패: "
                 f"{response.status_code}"
             )
 
@@ -203,17 +223,23 @@ def discover_repositories_from_commits(
             )
 
             if repository:
-                repositories.add(repository)
 
-        # Search API는 최대 1000개 결과까지만 제공
+                repositories.add(
+                    repository
+                )
+
         total_count = data.get(
             "total_count",
             0
         )
 
+        # GitHub Search API 최대 1000개
         if (
             len(items) < 100
-            or page * 100 >= min(total_count, 1000)
+            or page * 100 >= min(
+                total_count,
+                1000
+            )
         ):
             break
 
@@ -232,8 +258,7 @@ def discover_all_repositories(
     until
 ):
     """
-    개인 Repository + 최근 Commit에서 발견된
-    Organization Repository를 합친다.
+    개인 Repository + Commit Search 결과를 합친다.
     """
 
     repositories = set()
@@ -242,10 +267,14 @@ def discover_all_repositories(
     # 개인 Repository
     # --------------------------------------------------------
 
-    print("📂 개인 Repository 검색 중...")
+    print(
+        "📂 개인 Repository 검색 중..."
+    )
 
     personal_repositories = (
-        fetch_personal_repositories(username)
+        fetch_personal_repositories(
+            username
+        )
     )
 
     repositories.update(
@@ -295,9 +324,9 @@ def fetch_commits(
     until
 ):
     """
-    지정된 Repository의 특정 기간 Commit 조회.
+    특정 Repository의 Commit 조회.
 
-    GitHub 계정 login 또는 Git author.name을 이용해서
+    GitHub login 또는 Git author.name을 이용하여
     본인의 Commit만 필터링한다.
     """
 
@@ -349,7 +378,7 @@ def fetch_commits(
         for commit in data:
 
             # =================================================
-            # Commit 메시지
+            # 자동 README 업데이트 제외
             # =================================================
 
             message = (
@@ -358,7 +387,6 @@ def fetch_commits(
                 .get("message", "")
             )
 
-            # GitHub Actions 자동 Commit 제외
             if message.startswith(
                 "Update development log"
             ):
@@ -380,6 +408,7 @@ def fetch_commits(
             github_login = None
 
             if github_author:
+
                 github_login = (
                     github_author.get(
                         "login"
@@ -387,7 +416,7 @@ def fetch_commits(
                 )
 
             # =================================================
-            # Git Commit author
+            # Git author 이름
             # =================================================
 
             git_author = (
@@ -403,7 +432,7 @@ def fetch_commits(
             )
 
             # =================================================
-            # 본인 Commit 판별
+            # 본인 Commit인지 확인
             # =================================================
 
             is_my_commit = (
@@ -414,7 +443,9 @@ def fetch_commits(
             if not is_my_commit:
                 continue
 
-            commits.append(commit)
+            commits.append(
+                commit
+            )
 
         if len(data) < 100:
             break
@@ -453,8 +484,10 @@ def get_commit_times(commits):
                 )
             )
 
-            commit_time = commit_time.astimezone(
-                KST
+            commit_time = (
+                commit_time.astimezone(
+                    KST
+                )
             )
 
             times.append(
@@ -487,7 +520,9 @@ def group_commits_by_date(
         commits_by_date.setdefault(
             date,
             []
-        ).append(commit_time)
+        ).append(
+            commit_time
+        )
 
     return commits_by_date
 
@@ -500,23 +535,13 @@ def calculate_daily_development_time(
     commit_times
 ):
     """
-    Commit 시간을 기반으로 개발시간을 추정한다.
+    Commit 시간을 기반으로 개발시간 추정.
 
-    Commit 없음
-        → 기록하지 않음
-
-    Commit 1개
-        → 30분
-
-    Commit 여러 개
-        → 첫 Commit 30분
-        → 이후 간격 최대 60분
-
-    2시간 이상 공백
-        → 새로운 세션
-        → 30분 추가
-
-    하루 최대 8시간
+    - Commit 없음 → 기록하지 않음
+    - Commit 1개 → 30분
+    - 이후 Commit 간격 → 최대 60분
+    - 2시간 이상 공백 → 새 세션
+    - 하루 최대 8시간
     """
 
     daily_minutes = {}
@@ -588,8 +613,8 @@ def calculate_total_development_time(
     모든 Repository의 Commit을 합쳐
     전체 개발시간을 계산한다.
 
-    여러 Repository에서 작업한 경우에도
-    같은 시간대의 Commit은 중복 계산한다.
+    같은 시간대의 Commit도 시간 간격 기준으로
+    한 번만 계산한다.
     """
 
     if not all_commit_times:
@@ -695,6 +720,23 @@ def format_minutes(minutes):
 
 
 # ============================================================
+# 프로젝트 표시명
+# ============================================================
+
+def get_project_name(repository):
+
+    if repository in PROJECT_NAMES:
+
+        return PROJECT_NAMES[
+            repository
+        ]
+
+    # 아직 이름을 지정하지 않은 Repository
+    # → owner/repository 그대로 표시
+    return repository
+
+
+# ============================================================
 # README 개발 기록
 # ============================================================
 
@@ -709,11 +751,17 @@ def generate_weekly_development_chart(
 
     dates = [
         today - timedelta(days=i)
-        for i in range(6, -1, -1)
+        for i in range(
+            6,
+            -1,
+            -1
+        )
     ]
 
     date_strings = [
-        date.strftime("%Y-%m-%d")
+        date.strftime(
+            "%Y-%m-%d"
+        )
         for date in dates
     ]
 
@@ -743,7 +791,7 @@ def generate_weekly_development_chart(
     # ========================================================
 
     chart += (
-        "| 구분 | "
+        "| 프로젝트 | "
         + " | ".join(
             date.strftime("%m/%d")
             for date in dates
@@ -757,7 +805,7 @@ def generate_weekly_development_chart(
         + "\n"
     )
 
-    values = []
+    total_values = []
 
     for date in date_strings:
 
@@ -766,28 +814,32 @@ def generate_weekly_development_chart(
             0
         )
 
-        values.append(
-            format_minutes(minutes)
+        total_values.append(
+            format_minutes(
+                minutes
+            )
         )
 
     chart += (
         "| **전체** | "
-        + " | ".join(values)
+        + " | ".join(
+            total_values
+        )
         + f" | **{format_minutes(total_week_minutes)}** |\n"
     )
 
     chart += "\n"
 
     # ========================================================
-    # Repository별
+    # 프로젝트별 기록
     # ========================================================
 
     chart += (
-        "### 📚 Repository별 기록\n\n"
+        "### 📚 프로젝트별 기록\n\n"
     )
 
     chart += (
-        "| Repository | "
+        "| 프로젝트 | "
         + " | ".join(
             date.strftime("%m/%d")
             for date in dates
@@ -802,18 +854,19 @@ def generate_weekly_development_chart(
     )
 
     for repository, daily_logs in sorted(
-        repository_logs.items()
+        repository_logs.items(),
+        key=lambda item: get_project_name(
+            item[0]
+        )
     ):
 
-        # owner/repository에서 repository 이름만 표시
-        repo_name = repository.split(
-            "/",
-            1
-        )[-1]
+        project_name = get_project_name(
+            repository
+        )
 
         values = []
 
-        repo_total = 0
+        project_total = 0
 
         for date in date_strings:
 
@@ -822,7 +875,7 @@ def generate_weekly_development_chart(
                 0
             )
 
-            repo_total += minutes
+            project_total += minutes
 
             values.append(
                 format_minutes(
@@ -831,9 +884,11 @@ def generate_weekly_development_chart(
             )
 
         chart += (
-            f"| {repo_name} | "
-            + " | ".join(values)
-            + f" | **{format_minutes(repo_total)}** |\n"
+            f"| {project_name} | "
+            + " | ".join(
+                values
+            )
+            + f" | **{format_minutes(project_total)}** |\n"
         )
 
     chart += "\n"
@@ -846,7 +901,7 @@ def generate_weekly_development_chart(
         "인정하며, 2시간 이상 공백은 새로운 개발 세션으로 "
         "계산합니다. 하루 최대 8시간으로 제한합니다. "
         "GitHub Actions의 자동 README 업데이트 Commit은 "
-        "개발시간에서 제외합니다.\n"
+        "제외합니다.\n"
     )
 
     return chart
@@ -858,7 +913,10 @@ def generate_weekly_development_chart(
 
 def update_readme():
 
-    print("🚀 개발 기록 업데이트 시작")
+    print(
+        "🚀 개발 기록 업데이트 시작"
+    )
+
     print()
 
     # --------------------------------------------------------
@@ -879,13 +937,14 @@ def update_readme():
     )
 
     until = datetime.combine(
-        today.date() + timedelta(days=1),
+        today.date()
+        + timedelta(days=1),
         datetime.min.time(),
         tzinfo=KST
     )
 
     # --------------------------------------------------------
-    # 모든 Repository 발견
+    # 전체 Repository 발견
     # --------------------------------------------------------
 
     repositories = (
@@ -897,9 +956,12 @@ def update_readme():
     )
 
     print()
+
     print(
-        f"📦 총 {len(repositories)}개 Repository 추적"
+        f"📦 총 {len(repositories)}개 "
+        f"Repository 추적"
     )
+
     print()
 
     repository_logs = {}
@@ -964,7 +1026,7 @@ def update_readme():
                 f"{format_minutes(repo_total)}"
             )
 
-        # 전체 계산
+        # 전체 계산용
         all_commit_times.extend(
             commit_times
         )
@@ -984,13 +1046,14 @@ def update_readme():
     )
 
     print()
+
     print(
         f"⏱️ 전체 개발시간: "
         f"{format_minutes(total_minutes)}"
     )
 
     # --------------------------------------------------------
-    # JSON
+    # JSON 저장
     # --------------------------------------------------------
 
     logs = {
@@ -998,7 +1061,9 @@ def update_readme():
         "total": total_logs
     }
 
-    save_dev_logs(logs)
+    save_dev_logs(
+        logs
+    )
 
     # --------------------------------------------------------
     # README 고정 영역
@@ -1058,7 +1123,9 @@ def update_readme():
         )
 
     print()
-    print("🎉 README 업데이트 완료!")
+    print(
+        "🎉 README 업데이트 완료!"
+    )
 
 
 # ============================================================
