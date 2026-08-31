@@ -13,32 +13,17 @@
 ### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
 - 설명 : '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
 
-## Kmove IT스페셜리스트 (2022.04 ~ 2022.12)
-### [Kmove 과제 및 공부자료](https://github.com/juyangjin/2022_Kmove)
-- 설명 : kmove 과정에서 공부한 자료들입니다.
+## 현재 개발하고 유지 중인 서비스
+### [모여볼(2026.06 ~ )](https://github.com/swyp-5th-team9/backend)
+- 설명 : 스포츠 펍 파인더 앱 '모여볼' 서비스
 
-## 📚 스파르타 코딩클럽 Spring&Kotlin 4기(2024.11~ 2025.3)
-### [11War-Shop](https://github.com/11war/11war-shop)
-- 설명 : E-Commerce 서비스 프로젝트 
-
-### [Cheer-ha](https://github.com/cheer-ha/cheer-ha)
-- 설명 : 취업을 위하여! 사용자 맞춤형 취업정보 제공 서비스
-
-## 📚 스파르타 코딩클럽 JAVA 단기심화 4기(2025.9~ 2025.12)
-## [WhyNComing?](https://github.com/WhyWorking2/why-n-coming)
-- 설명 : 왜 안와? 배민 기반 AI 활용 배달앱 백엔드 프로젝트 
-
-## [프로젝트 2]
-- 설명 : 
-
-## [프로젝트 3]
-- 설명 : 
-
-## 📑 과제 페이지
-### [대학과제](https://github.com/juyangjin/BU-2017-2022)
-- 설명: 대학 과제 및 프로젝트 작업물입니다.
+### [한일 주류 비교 웹사이트(2026.08 ~ )](https://github.com/swyp-web15-3team/backend)
+- 설명 : 현재 기획 단계
 
 
 ### projcet
 총 학습 시간: **7시간**
+
+### project
+총 학습 시간: **1시간**
 
