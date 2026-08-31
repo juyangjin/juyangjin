@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 LOG_FILE = "study_logs.json"
 
 GITHUB_USERNAME = "juyangjin"
-GITHUB_TOKEN = "실제_GITHUB_TOKEN"
+GITHUB_TOKEN = "your_github_personal_access_token"
 
 
 def fetch_repositories(username):
