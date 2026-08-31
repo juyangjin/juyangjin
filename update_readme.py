@@ -11,6 +11,8 @@ from datetime import datetime, timedelta, timezone
 LOG_FILE = "dev_logs.json"
 
 GITHUB_USERNAME = "juyangjin"
+
+# GitHub Actions에서 자동으로 제공되는 토큰 사용
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 if not GITHUB_TOKEN:
@@ -21,10 +23,10 @@ if not GITHUB_TOKEN:
 # 개발시간 계산 기준
 # ============================================================
 
-# 해당 날짜에 커밋이 1개뿐인 경우
+# 하루에 커밋이 하나뿐인 경우 인정하는 시간
 FIRST_COMMIT_MINUTES = 30
 
-# 커밋 사이에 인정하는 최대 시간
+# 커밋 사이 간격에서 인정하는 최대 시간
 MAX_GAP_MINUTES = 60
 
 # 이 시간 이상 커밋이 없으면 새로운 개발 세션으로 판단
@@ -55,7 +57,7 @@ def get_headers():
 
 def fetch_repositories(username):
     """
-    GitHub 사용자의 public repository 전체 조회
+    GitHub 사용자의 모든 public repository 조회
     """
 
     url = f"https://api.github.com/users/{username}/repos"
@@ -116,7 +118,12 @@ def fetch_commits(
     until
 ):
     """
-    특정 repository의 특정 기간 commit 조회
+    특정 Repository의 특정 기간 Commit 조회.
+
+    다음 조건을 만족하는 Commit만 개발 기록에 포함한다.
+
+    1. GitHub 계정이 juyangjin인 Commit
+    2. GitHub Actions가 생성한 README 업데이트 Commit 제외
     """
 
     url = (
@@ -143,7 +150,7 @@ def fetch_commits(
             timeout=30
         )
 
-        # 빈 repository
+        # 빈 Repository
         if response.status_code == 409:
             return []
 
@@ -161,7 +168,44 @@ def fetch_commits(
         if not data:
             break
 
-        commits.extend(data)
+        for commit in data:
+
+            # ------------------------------------------------
+            # GitHub 계정 확인
+            # ------------------------------------------------
+
+            github_author = commit.get("author")
+
+            if github_author is None:
+                continue
+
+            login = github_author.get("login")
+
+            if login != username:
+                continue
+
+            # ------------------------------------------------
+            # Commit 메시지 확인
+            # ------------------------------------------------
+
+            message = (
+                commit
+                .get("commit", {})
+                .get("message", "")
+            )
+
+            # GitHub Actions가 만든 자동 업데이트 제외
+            if message.startswith(
+                "Update development log"
+            ):
+                continue
+
+            if message.startswith(
+                "Update weekly study chart and logs"
+            ):
+                continue
+
+            commits.append(commit)
 
         if len(data) < 100:
             break
@@ -177,7 +221,7 @@ def fetch_commits(
 
 def get_commit_times(commits):
     """
-    GitHub commit 시간을 KST로 변환
+    Commit 시간을 KST로 변환
     """
 
     times = []
@@ -203,7 +247,9 @@ def get_commit_times(commits):
                 )
             )
 
-            commit_time = commit_time.astimezone(KST)
+            commit_time = commit_time.astimezone(
+                KST
+            )
 
             times.append(commit_time)
 
@@ -245,27 +291,16 @@ def calculate_daily_development_time(
     commit_times
 ):
     """
-    Commit 기록을 기반으로 개발시간 계산
+    Commit 시간을 기반으로 개발시간 계산.
 
     규칙:
 
-    1. 커밋이 없는 날
-       → 기록하지 않음
-
-    2. 커밋이 1개
-       → 30분
-
-    3. 커밋이 여러 개
-       → 커밋 간격을 계산
-
-    4. 커밋 간격
-       → 최대 60분 인정
-
-    5. 2시간 이상 공백
-       → 새로운 개발 세션
-       → 30분부터 다시 계산
-
-    6. 하루 최대 8시간
+    - Commit이 없는 날 → 기록하지 않음
+    - Commit 1개 → 30분
+    - Commit 여러 개 → Commit 간격 계산
+    - Commit 간격 최대 60분 인정
+    - 2시간 이상 공백 → 새로운 세션
+    - 하루 최대 8시간
     """
 
     daily_minutes = {}
@@ -282,7 +317,7 @@ def calculate_daily_development_time(
         times.sort()
 
         # ----------------------------------------------------
-        # 커밋 하나
+        # Commit 1개
         # ----------------------------------------------------
 
         if len(times) == 1:
@@ -290,11 +325,12 @@ def calculate_daily_development_time(
             minutes = FIRST_COMMIT_MINUTES
 
         # ----------------------------------------------------
-        # 커밋 여러 개
+        # Commit 여러 개
         # ----------------------------------------------------
 
         else:
 
+            # 첫 번째 Commit에 기본 30분
             minutes = FIRST_COMMIT_MINUTES
 
             for i in range(1, len(times)):
@@ -303,13 +339,18 @@ def calculate_daily_development_time(
                     times[i] - times[i - 1]
                 ).total_seconds() / 60
 
-                # 2시간 이상이면 새로운 세션
+                # --------------------------------------------
+                # 2시간 이상 차이
+                # → 새로운 개발 세션
+                # --------------------------------------------
+
                 if gap >= SESSION_GAP_MINUTES:
 
                     minutes += FIRST_COMMIT_MINUTES
 
                 else:
 
+                    # 최대 60분까지만 인정
                     minutes += min(
                         gap,
                         MAX_GAP_MINUTES
@@ -323,6 +364,7 @@ def calculate_daily_development_time(
 
         # 0분인 경우 저장하지 않음
         if minutes > 0:
+
             daily_minutes[date] = minutes
 
     return daily_minutes
@@ -336,11 +378,11 @@ def calculate_total_development_time(
     all_commit_times
 ):
     """
-    모든 Repository의 commit 시간을 합쳐
+    모든 Repository의 Commit을 합쳐
     전체 개발시간을 계산한다.
 
-    Repository가 달라도 같은 시간대에
-    작업했다면 중복 계산하지 않는다.
+    여러 Repository에서 작업하더라도
+    같은 시간대의 개발 활동은 중복 계산하지 않는다.
     """
 
     if not all_commit_times:
@@ -394,6 +436,7 @@ def calculate_total_development_time(
         )
 
         if minutes > 0:
+
             daily_minutes[date] = minutes
 
     return daily_minutes
@@ -570,9 +613,10 @@ def generate_weekly_development_chart(
         "> 💡 GitHub Commit 시간을 기준으로 "
         "개발 활동 시간을 추정합니다. "
         "Commit 1개는 30분, Commit 간격은 최대 60분까지 "
-        "인정합니다. 2시간 이상 공백은 새로운 세션으로 "
+        "인정합니다. 2시간 이상 공백은 새로운 개발 세션으로 "
         "계산하며 하루 최대 8시간으로 제한합니다. "
-        "전체 개발시간은 Repository 간 중복 시간을 제거합니다.\n"
+        "GitHub Actions의 자동 README 업데이트 Commit은 "
+        "개발시간에서 제외합니다.\n"
     )
 
     return chart
@@ -639,6 +683,7 @@ def update_readme():
         )
 
         if not commits:
+            print("   → 개발 Commit 없음")
             continue
 
         commit_times = get_commit_times(
@@ -646,16 +691,19 @@ def update_readme():
         )
 
         if not commit_times:
+            print("   → 유효한 Commit 없음")
             continue
 
+        # ----------------------------------------------------
         # Repository별 개발시간
+        # ----------------------------------------------------
+
         daily_minutes = (
             calculate_daily_development_time(
                 commit_times
             )
         )
 
-        # 커밋이 실제로 있는 경우만 저장
         if daily_minutes:
 
             repository_logs[
@@ -667,10 +715,11 @@ def update_readme():
             )
 
             print(
-                f"   → {format_minutes(repo_total)}"
+                f"   → 개발시간: "
+                f"{format_minutes(repo_total)}"
             )
 
-        # 전체 개발시간 계산용
+        # 전체 계산용
         all_commit_times.extend(
             commit_times
         )
@@ -679,8 +728,10 @@ def update_readme():
     # 전체 개발시간
     # --------------------------------------------------------
 
-    total_logs = calculate_total_development_time(
-        all_commit_times
+    total_logs = (
+        calculate_total_development_time(
+            all_commit_times
+        )
     )
 
     total_minutes = sum(
