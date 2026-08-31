@@ -12,7 +12,13 @@ LOG_FILE = "dev_logs.json"
 
 GITHUB_USERNAME = "juyangjin"
 
-# GitHub Actions에서 자동 제공되는 토큰
+# Git 커밋에 표시되는 이름
+GITHUB_AUTHOR_NAMES = {
+    "Juyang_Jin",
+    "Juyang Jin"
+}
+
+# GitHub Actions에서 자동으로 제공되는 토큰
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 if not GITHUB_TOKEN:
@@ -20,44 +26,27 @@ if not GITHUB_TOKEN:
 
 
 # ============================================================
-# 중요: Git Commit 이메일
-# ============================================================
-#
-# GitHub에서 사용하는 Commit 이메일을 넣어주세요.
-#
-# 예:
-# GITHUB_COMMIT_EMAILS = {
-#     "123456+juyangjin@users.noreply.github.com",
-#     "your-email@gmail.com"
-# }
-#
-# GitHub Settings → Emails에서 확인할 수 있습니다.
-#
-# 여러 이메일을 사용했다면 여러 개 등록하세요.
-# ============================================================
-
-GITHUB_COMMIT_EMAILS = {
-    "wndid2008@gmail.com"
-}
-
-
-# ============================================================
 # 개발시간 계산 기준
 # ============================================================
 
+# 하루에 커밋이 하나뿐이면 인정하는 시간
 FIRST_COMMIT_MINUTES = 30
 
+# 커밋 사이에서 인정하는 최대 시간
 MAX_GAP_MINUTES = 60
 
+# 이 시간 이상 공백이면 새로운 개발 세션
 SESSION_GAP_MINUTES = 120
 
+# 하루 최대 개발시간
 MAX_DAILY_MINUTES = 8 * 60
 
+# 한국 시간
 KST = timezone(timedelta(hours=9))
 
 
 # ============================================================
-# GitHub API
+# GitHub API Header
 # ============================================================
 
 def get_headers():
@@ -135,13 +124,16 @@ def fetch_commits(
     until
 ):
     """
-    특정 Repository의 Commit 조회.
+    Repository의 특정 기간 Commit 조회.
 
-    author=username 조건을 함께 사용해서
-    가능한 경우 GitHub 계정 기준으로 필터링한다.
+    본인 Commit만 가져온다.
 
-    이후 로컬 Git author email도 확인하여
-    Organization Repository에서도 커밋을 놓치지 않도록 한다.
+    본인 판별 기준:
+
+    1. GitHub 계정 login == juyangjin
+    2. Git author.name == Juyang_Jin
+
+    GitHub Actions 자동 Commit은 제외한다.
     """
 
     url = (
@@ -158,7 +150,7 @@ def fetch_commits(
             "since": since.isoformat(),
             "until": until.isoformat(),
 
-            # GitHub 계정 기준 author 필터
+            # GitHub API의 author 필터
             "author": username,
 
             "per_page": 100,
@@ -196,7 +188,7 @@ def fetch_commits(
         for commit in data:
 
             # =================================================
-            # GitHub Actions 자동 커밋 제외
+            # Commit 메시지
             # =================================================
 
             message = (
@@ -205,6 +197,7 @@ def fetch_commits(
                 .get("message", "")
             )
 
+            # GitHub Actions 자동 업데이트 제외
             if message.startswith(
                 "Update development log"
             ):
@@ -216,7 +209,7 @@ def fetch_commits(
                 continue
 
             # =================================================
-            # GitHub 계정 확인
+            # GitHub 계정
             # =================================================
 
             github_author = commit.get("author")
@@ -224,13 +217,12 @@ def fetch_commits(
             github_login = None
 
             if github_author:
-
-                github_login = (
-                    github_author.get("login")
+                github_login = github_author.get(
+                    "login"
                 )
 
             # =================================================
-            # Git author 정보
+            # Git Commit Author 이름
             # =================================================
 
             git_author = (
@@ -239,32 +231,21 @@ def fetch_commits(
                 .get("author", {})
             )
 
-            git_email = (
-                git_author.get("email", "")
-                .lower()
+            git_name = (
+                git_author
+                .get("name", "")
                 .strip()
             )
 
             # =================================================
-            # 본인 Commit인지 확인
+            # 본인 Commit 판별
             # =================================================
 
-            is_my_commit = False
+            is_my_commit = (
+                github_login == username
+                or git_name in GITHUB_AUTHOR_NAMES
+            )
 
-            # 방법 1
-            # GitHub 계정 연결
-            if github_login == username:
-                is_my_commit = True
-
-            # 방법 2
-            # Git author 이메일
-            elif git_email in {
-                email.lower().strip()
-                for email in GITHUB_COMMIT_EMAILS
-            }:
-                is_my_commit = True
-
-            # 둘 다 아니면 제외
             if not is_my_commit:
                 continue
 
@@ -354,8 +335,8 @@ def calculate_daily_development_time(
 
     - Commit 없음 → 기록하지 않음
     - Commit 1개 → 30분
-    - Commit 여러 개 → 간격 계산
-    - 간격 최대 60분
+    - Commit 여러 개 → Commit 간격 계산
+    - 최대 60분 인정
     - 2시간 이상 공백 → 새로운 세션
     - 하루 최대 8시간
     """
@@ -373,14 +354,14 @@ def calculate_daily_development_time(
 
         times.sort()
 
-        # Commit 하나
+        # Commit 1개
         if len(times) == 1:
 
             minutes = FIRST_COMMIT_MINUTES
 
         else:
 
-            # 첫 Commit
+            # 첫 Commit 기본 30분
             minutes = FIRST_COMMIT_MINUTES
 
             for i in range(1, len(times)):
@@ -389,7 +370,7 @@ def calculate_daily_development_time(
                     times[i] - times[i - 1]
                 ).total_seconds() / 60
 
-                # 2시간 이상 공백
+                # 2시간 이상이면 새로운 세션
                 if gap >= SESSION_GAP_MINUTES:
 
                     minutes += FIRST_COMMIT_MINUTES
@@ -421,6 +402,13 @@ def calculate_daily_development_time(
 def calculate_total_development_time(
     all_commit_times
 ):
+    """
+    모든 Repository의 Commit을 합쳐
+    전체 개발시간을 계산한다.
+
+    Repository가 달라도 같은 시간대의
+    개발 활동은 중복 계산하지 않는다.
+    """
 
     if not all_commit_times:
         return {}
@@ -521,7 +509,7 @@ def format_minutes(minutes):
 
 
 # ============================================================
-# README 생성
+# README 개발 기록 생성
 # ============================================================
 
 def generate_weekly_development_chart(
@@ -598,7 +586,7 @@ def generate_weekly_development_chart(
     chart += "\n"
 
     # ========================================================
-    # Repository별
+    # Repository별 개발시간
     # ========================================================
 
     chart += "### 📚 Repository별 기록\n\n"
@@ -651,9 +639,10 @@ def generate_weekly_development_chart(
         "개발 활동 시간을 추정합니다. "
         "Commit이 없는 날은 기록하지 않습니다. "
         "Commit 1개는 30분, Commit 간격은 최대 60분까지 "
-        "인정하며, 2시간 이상 공백은 새로운 세션으로 "
+        "인정하며, 2시간 이상 공백은 새로운 개발 세션으로 "
         "계산합니다. 하루 최대 8시간으로 제한합니다. "
-        "GitHub Actions의 자동 업데이트 Commit은 제외합니다.\n"
+        "GitHub Actions의 자동 README 업데이트 Commit은 "
+        "개발시간에서 제외합니다.\n"
     )
 
     return chart
@@ -676,7 +665,7 @@ def update_readme():
     )
 
     # --------------------------------------------------------
-    # 최근 7일
+    # KST 기준 최근 7일
     # --------------------------------------------------------
 
     today = datetime.now(KST)
@@ -703,7 +692,7 @@ def update_readme():
     all_commit_times = []
 
     # --------------------------------------------------------
-    # Repository 처리
+    # Repository별 처리
     # --------------------------------------------------------
 
     for repo in repositories:
@@ -739,7 +728,6 @@ def update_readme():
 
             continue
 
-        # Repository별 개발시간
         daily_minutes = (
             calculate_daily_development_time(
                 commit_times
@@ -761,7 +749,6 @@ def update_readme():
                 f"{format_minutes(repo_total)}"
             )
 
-        # 전체 계산용
         all_commit_times.extend(
             commit_times
         )
