@@ -1,4 +1,3 @@
-```python
 import json
 import os
 import requests
@@ -721,4 +720,3 @@ def update_readme():
 
 if __name__ == "__main__":
     update_readme()
-```
