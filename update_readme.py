@@ -8,11 +8,9 @@ from datetime import datetime, timedelta, timezone
 # 설정
 # ============================================================
 
-LOG_FILE = "study_logs.json"
+LOG_FILE = "dev_logs.json"
 
 GITHUB_USERNAME = "juyangjin"
-
-# GitHub Actions에서 자동으로 제공되는 토큰 사용
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 if not GITHUB_TOKEN:
@@ -20,14 +18,22 @@ if not GITHUB_TOKEN:
 
 
 # ============================================================
-# 시간 설정
+# 개발시간 계산 기준
 # ============================================================
 
+# 해당 날짜에 커밋이 1개뿐인 경우
 FIRST_COMMIT_MINUTES = 30
+
+# 커밋 사이에 인정하는 최대 시간
 MAX_GAP_MINUTES = 60
+
+# 이 시간 이상 커밋이 없으면 새로운 개발 세션으로 판단
 SESSION_GAP_MINUTES = 120
+
+# 하루 최대 개발시간
 MAX_DAILY_MINUTES = 8 * 60
 
+# 한국 시간
 KST = timezone(timedelta(hours=9))
 
 
@@ -49,7 +55,7 @@ def get_headers():
 
 def fetch_repositories(username):
     """
-    GitHub 사용자의 모든 public repository 조회
+    GitHub 사용자의 public repository 전체 조회
     """
 
     url = f"https://api.github.com/users/{username}/repos"
@@ -110,7 +116,7 @@ def fetch_commits(
     until
 ):
     """
-    특정 Repository의 특정 기간 Commit 조회
+    특정 repository의 특정 기간 commit 조회
     """
 
     url = (
@@ -137,7 +143,7 @@ def fetch_commits(
             timeout=30
         )
 
-        # 빈 Repository
+        # 빈 repository
         if response.status_code == 409:
             return []
 
@@ -171,8 +177,7 @@ def fetch_commits(
 
 def get_commit_times(commits):
     """
-    GitHub Commit의 작성 시간을 추출하고
-    한국 시간(KST)으로 변환
+    GitHub commit 시간을 KST로 변환
     """
 
     times = []
@@ -198,9 +203,7 @@ def get_commit_times(commits):
                 )
             )
 
-            commit_time = commit_time.astimezone(
-                KST
-            )
+            commit_time = commit_time.astimezone(KST)
 
             times.append(commit_time)
 
@@ -224,28 +227,45 @@ def group_commits_by_date(commit_times):
             "%Y-%m-%d"
         )
 
-        commits_by_date.setdefault(
-            date,
-            []
-        ).append(commit_time)
+        if date not in commits_by_date:
+            commits_by_date[date] = []
+
+        commits_by_date[date].append(
+            commit_time
+        )
 
     return commits_by_date
 
 
 # ============================================================
-# Repository별 공부시간 계산
+# 개발시간 계산
 # ============================================================
 
-def calculate_repository_study_time(
+def calculate_daily_development_time(
     commit_times
 ):
     """
-    Repository 하나의 공부시간 계산
+    Commit 기록을 기반으로 개발시간 계산
 
-    - Commit 1개 → 30분
-    - Commit 간격 → 최대 60분
-    - 2시간 이상 간격 → 새로운 세션
-    - 하루 최대 8시간
+    규칙:
+
+    1. 커밋이 없는 날
+       → 기록하지 않음
+
+    2. 커밋이 1개
+       → 30분
+
+    3. 커밋이 여러 개
+       → 커밋 간격을 계산
+
+    4. 커밋 간격
+       → 최대 60분 인정
+
+    5. 2시간 이상 공백
+       → 새로운 개발 세션
+       → 30분부터 다시 계산
+
+    6. 하루 최대 8시간
     """
 
     daily_minutes = {}
@@ -256,15 +276,26 @@ def calculate_repository_study_time(
 
     for date, times in commits_by_date.items():
 
+        if not times:
+            continue
+
         times.sort()
+
+        # ----------------------------------------------------
+        # 커밋 하나
+        # ----------------------------------------------------
 
         if len(times) == 1:
 
             minutes = FIRST_COMMIT_MINUTES
 
+        # ----------------------------------------------------
+        # 커밋 여러 개
+        # ----------------------------------------------------
+
         else:
 
-            minutes = 0
+            minutes = FIRST_COMMIT_MINUTES
 
             for i in range(1, len(times)):
 
@@ -272,6 +303,7 @@ def calculate_repository_study_time(
                     times[i] - times[i - 1]
                 ).total_seconds() / 60
 
+                # 2시간 이상이면 새로운 세션
                 if gap >= SESSION_GAP_MINUTES:
 
                     minutes += FIRST_COMMIT_MINUTES
@@ -283,35 +315,40 @@ def calculate_repository_study_time(
                         MAX_GAP_MINUTES
                     )
 
+        # 하루 최대 8시간
         minutes = min(
             round(minutes),
             MAX_DAILY_MINUTES
         )
 
-        daily_minutes[date] = minutes
+        # 0분인 경우 저장하지 않음
+        if minutes > 0:
+            daily_minutes[date] = minutes
 
     return daily_minutes
 
 
 # ============================================================
-# 전체 공부시간 계산
+# 전체 개발시간 계산
 # ============================================================
 
-def calculate_total_study_time(
+def calculate_total_development_time(
     all_commit_times
 ):
     """
-    모든 Repository의 Commit 시간을 합쳐서
-    전체 공부시간을 계산한다.
+    모든 Repository의 commit 시간을 합쳐
+    전체 개발시간을 계산한다.
 
     Repository가 달라도 같은 시간대에
-    작업한 경우 중복 계산하지 않는다.
+    작업했다면 중복 계산하지 않는다.
     """
 
     if not all_commit_times:
         return {}
 
-    all_commit_times.sort()
+    all_commit_times = sorted(
+        all_commit_times
+    )
 
     commits_by_date = group_commits_by_date(
         all_commit_times
@@ -321,6 +358,9 @@ def calculate_total_study_time(
 
     for date, times in commits_by_date.items():
 
+        if not times:
+            continue
+
         times.sort()
 
         if len(times) == 1:
@@ -329,7 +369,7 @@ def calculate_total_study_time(
 
         else:
 
-            minutes = 0
+            minutes = FIRST_COMMIT_MINUTES
 
             for i in range(1, len(times)):
 
@@ -353,7 +393,8 @@ def calculate_total_study_time(
             MAX_DAILY_MINUTES
         )
 
-        daily_minutes[date] = minutes
+        if minutes > 0:
+            daily_minutes[date] = minutes
 
     return daily_minutes
 
@@ -362,13 +403,10 @@ def calculate_total_study_time(
 # JSON 저장
 # ============================================================
 
-def save_study_logs(
-    logs,
-    file_path
-):
+def save_dev_logs(logs):
 
     with open(
-        file_path,
+        LOG_FILE,
         "w",
         encoding="utf-8"
     ) as f:
@@ -382,7 +420,7 @@ def save_study_logs(
 
 
 # ============================================================
-# 시간 포맷
+# 시간 표시
 # ============================================================
 
 def format_minutes(minutes):
@@ -403,10 +441,10 @@ def format_minutes(minutes):
 
 
 # ============================================================
-# README 공부 기록 생성
+# README 개발 기록 생성
 # ============================================================
 
-def generate_weekly_study_chart(
+def generate_weekly_development_chart(
     repository_logs,
     total_logs
 ):
@@ -423,11 +461,11 @@ def generate_weekly_study_chart(
         for date in dates
     ]
 
-    chart = "## 📊 최근 7일 공부 기록\n\n"
+    chart = "## 📊 최근 7일 개발 기록\n\n"
 
-    # --------------------------------------------------------
-    # 전체 공부시간
-    # --------------------------------------------------------
+    # ========================================================
+    # 전체 개발시간
+    # ========================================================
 
     total_week_minutes = sum(
         total_logs.get(date, 0)
@@ -435,13 +473,13 @@ def generate_weekly_study_chart(
     )
 
     chart += (
-        f"### ⏱️ 총 공부시간 "
+        f"### ⏱️ 총 개발시간 "
         f"**{format_minutes(total_week_minutes)}**\n\n"
     )
 
-    # --------------------------------------------------------
-    # 전체 공부시간 표
-    # --------------------------------------------------------
+    # ========================================================
+    # 전체 개발시간 표
+    # ========================================================
 
     chart += (
         "| 구분 | "
@@ -458,12 +496,18 @@ def generate_weekly_study_chart(
         + "\n"
     )
 
-    total_values = [
-        format_minutes(
-            total_logs.get(date, 0)
+    total_values = []
+
+    for date in date_strings:
+
+        minutes = total_logs.get(
+            date,
+            0
         )
-        for date in date_strings
-    ]
+
+        total_values.append(
+            format_minutes(minutes)
+        )
 
     chart += (
         "| **전체** | "
@@ -473,9 +517,9 @@ def generate_weekly_study_chart(
 
     chart += "\n"
 
-    # --------------------------------------------------------
-    # Repository별 공부시간
-    # --------------------------------------------------------
+    # ========================================================
+    # Repository별 개발시간
+    # ========================================================
 
     chart += "### 📚 Repository별 기록\n\n"
 
@@ -523,11 +567,12 @@ def generate_weekly_study_chart(
     chart += "\n"
 
     chart += (
-        "> 💡 GitHub Commit 시간을 기준으로 자동 계산됩니다. "
+        "> 💡 GitHub Commit 시간을 기준으로 "
+        "개발 활동 시간을 추정합니다. "
         "Commit 1개는 30분, Commit 간격은 최대 60분까지 "
         "인정합니다. 2시간 이상 공백은 새로운 세션으로 "
         "계산하며 하루 최대 8시간으로 제한합니다. "
-        "전체 공부시간은 Repository 간 중복 시간을 제거합니다.\n"
+        "전체 개발시간은 Repository 간 중복 시간을 제거합니다.\n"
     )
 
     return chart
@@ -550,28 +595,34 @@ def update_readme():
     )
 
     # --------------------------------------------------------
-    # 최근 7일 조회
+    # KST 기준 최근 7일
     # --------------------------------------------------------
 
     today = datetime.now(KST)
 
-    since = (
-        today - timedelta(days=7)
-    ).replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0
+    start_date = (
+        today.date()
+        - timedelta(days=6)
     )
 
-    until = today + timedelta(days=1)
+    since = datetime.combine(
+        start_date,
+        datetime.min.time(),
+        tzinfo=KST
+    )
+
+    until = datetime.combine(
+        today.date() + timedelta(days=1),
+        datetime.min.time(),
+        tzinfo=KST
+    )
 
     repository_logs = {}
 
     all_commit_times = []
 
     # --------------------------------------------------------
-    # Repository별 처리
+    # Repository별 조회
     # --------------------------------------------------------
 
     for repo in repositories:
@@ -597,37 +648,38 @@ def update_readme():
         if not commit_times:
             continue
 
-        # Repository별 공부시간
+        # Repository별 개발시간
         daily_minutes = (
-            calculate_repository_study_time(
+            calculate_daily_development_time(
                 commit_times
             )
         )
 
+        # 커밋이 실제로 있는 경우만 저장
         if daily_minutes:
 
             repository_logs[
                 repo
             ] = daily_minutes
 
-        # 전체 계산용 Commit
+            repo_total = sum(
+                daily_minutes.values()
+            )
+
+            print(
+                f"   → {format_minutes(repo_total)}"
+            )
+
+        # 전체 개발시간 계산용
         all_commit_times.extend(
             commit_times
         )
 
-        repo_total = sum(
-            daily_minutes.values()
-        )
-
-        print(
-            f"   → {format_minutes(repo_total)}"
-        )
-
     # --------------------------------------------------------
-    # 전체 공부시간
+    # 전체 개발시간
     # --------------------------------------------------------
 
-    total_logs = calculate_total_study_time(
+    total_logs = calculate_total_development_time(
         all_commit_times
     )
 
@@ -636,7 +688,7 @@ def update_readme():
     )
 
     print(
-        "\n⏱️ 전체 공부시간: "
+        "\n⏱️ 전체 개발시간: "
         f"{format_minutes(total_minutes)}"
     )
 
@@ -649,10 +701,7 @@ def update_readme():
         "total": total_logs
     }
 
-    save_study_logs(
-        logs,
-        LOG_FILE
-    )
+    save_dev_logs(logs)
 
     # --------------------------------------------------------
     # README 고정 영역
@@ -685,12 +734,14 @@ def update_readme():
 """
 
     # --------------------------------------------------------
-    # Weekly chart
+    # 개발 기록
     # --------------------------------------------------------
 
-    weekly_chart = generate_weekly_study_chart(
-        repository_logs,
-        total_logs
+    development_chart = (
+        generate_weekly_development_chart(
+            repository_logs,
+            total_logs
+        )
     )
 
     # --------------------------------------------------------
@@ -706,7 +757,7 @@ def update_readme():
         f.write(
             fixed_content
             + "\n\n"
-            + weekly_chart
+            + development_chart
         )
 
     print(
