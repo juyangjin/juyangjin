@@ -2,13 +2,9 @@
     "repositories": {
         "juyangjin/juyangjin": {
             "2026-08-31": 64
-        },
-        "swyp-web15-3team/backend": {
-            "2026-08-25": 61
         }
     },
     "total": {
-        "2026-08-25": 61,
         "2026-08-31": 64
     }
 }
