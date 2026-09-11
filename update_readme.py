@@ -37,7 +37,7 @@ PROJECT_NAMES = {
     "juyangjin/Code-Tree": "CodeTree",
 
     "swyp-5th-team9/backend": "모여볼",
-    "swyp-web15-3team/backend": "한일 주류 비교",
+    "swyp-web15-3team/backend": "술케줄",
 }
 
 
@@ -1089,10 +1089,10 @@ def update_readme():
 ## 🚀 현재 개발하고 유지 중인 서비스
 
 ### [모여볼(2026.06 ~ )](https://github.com/swyp-5th-team9/backend)
-- 설명: 스포츠 펍 파인더 앱 '모여볼' 서비스
+- 설명: 스포츠 펍 파인더 앱 서비스
 
-### [한일 주류 비교 웹사이트(2026.08 ~ )](https://github.com/swyp-web15-3team/backend)
-- 설명: 현재 기획 단계
+### [술케줄(2026.08 ~ )](https://github.com/swyp-web15-3team/backend)
+- 설명: 한일 위스키 가격 비교와 면세 쇼핑 플랜 웹 서비스
 """
 
     # --------------------------------------------------------
