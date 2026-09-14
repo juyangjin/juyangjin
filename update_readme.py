@@ -1,486 +1,922 @@
-import os
 import json
+import os
 import requests
 from datetime import datetime, timedelta, timezone
-from collections import defaultdict
 
 
 # ============================================================
 # 설정
 # ============================================================
 
+LOG_FILE = "dev_logs.json"
+
 GITHUB_USERNAME = "juyangjin"
-GITHUB_EMAIL = "wndid2008@gmail.com"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN 환경변수가 없습니다.")
+
+
+# ============================================================
+# 프로젝트 표시 이름
+# ============================================================
+#
+# 실제 GitHub Repository는 owner/repository로 관리하고
+# README에는 프로젝트 이름으로 표시한다.
+#
+# 새로운 프로젝트가 생기면 여기에 추가하면 된다.
+#
+# 예:
+# "organization/backend": "프로젝트명"
+# ============================================================
 
 PROJECT_NAMES = {
     "juyangjin/JAVA-s-Study": "Java Study",
     "juyangjin/Coding-Test": "Coding Test",
     "juyangjin/Code-Tree": "CodeTree",
+
     "swyp-5th-team9/backend": "모여볼",
     "swyp-web15-3team/backend": "술케줄",
 }
 
+
+# ============================================================
 # 모든 Branch를 조회할 Repository
+# ============================================================
+#
+# 일반 Repository는 기존처럼 기본 Branch만 조회한다.
+# 아래 Repository만 모든 Branch의 Commit을 조회한다.
+# ============================================================
+
 BRANCH_TRACKING_REPOSITORIES = {
     "swyp-5th-team9/backend",
     "swyp-web15-3team/backend",
 }
 
-# 개발 시간 계산 규칙
-COMMIT_MINUTES = 30
-MAX_GAP_MINUTES = 60
-SESSION_BREAK_MINUTES = 120
-MAX_DAILY_MINUTES = 8 * 60
 
-# README 자동 업데이트 커밋 제외
-IGNORED_COMMIT_PREFIXES = (
-    "Update development log",
-    "Update weekly study chart and logs",
-)
+# ============================================================
+# Commit 작성자
+# ============================================================
 
-KST = timezone(timedelta(hours=9))
-
-BASE_URL = "https://api.github.com"
-
-HEADERS = {
-    "Accept": "application/vnd.github+json",
-    "Authorization": f"Bearer {GITHUB_TOKEN}",
-    "X-GitHub-Api-Version": "2022-11-28",
+GITHUB_AUTHOR_NAMES = {
+    "Juyang_Jin",
+    "Juyang Jin",
 }
 
 
 # ============================================================
-# GitHub API 공통 함수
+# 개발시간 계산 기준
 # ============================================================
 
-def github_get(url, params=None):
-    response = requests.get(
-        url,
-        headers=HEADERS,
-        params=params,
-        timeout=30,
-    )
+# Commit이 하나뿐인 경우
+FIRST_COMMIT_MINUTES = 30
 
-    if response.status_code != 200:
-        print(
-            f"   ⚠️ GitHub API 오류 "
-            f"[{response.status_code}] {url}"
-        )
-        try:
-            print(f"      → {response.json().get('message')}")
-        except Exception:
-            pass
-        return None
+# Commit 사이 최대 인정 시간
+MAX_GAP_MINUTES = 60
 
-    return response.json()
+# 2시간 이상 공백이면 새로운 세션
+SESSION_GAP_MINUTES = 120
+
+# 하루 최대 개발시간
+MAX_DAILY_MINUTES = 8 * 60
 
 
 # ============================================================
-# 본인 Commit인지 확인
+# 한국 시간
 # ============================================================
 
-def is_my_commit(commit):
-    """
-    GitHub Commit의 여러 정보를 기준으로 본인 커밋인지 확인한다.
+KST = timezone(timedelta(hours=9))
 
-    우선순위:
-    1. GitHub 로그인 username
-    2. commit author email
-    3. commit author name
-    """
 
-    author = commit.get("author") or {}
-    git_author = commit.get("commit", {}).get("author") or {}
+# ============================================================
+# GitHub API
+# ============================================================
 
-    github_login = author.get("login", "")
-    author_email = git_author.get("email", "")
-    author_name = git_author.get("name", "")
-
-    # GitHub 계정으로 확인
-    if github_login.lower() == GITHUB_USERNAME.lower():
-        return True
-
-    # Git email로 확인
-    if author_email.lower() == GITHUB_EMAIL.lower():
-        return True
-
-    # 이름으로 확인
-    normalized_name = author_name.strip().lower()
-
-    allowed_names = {
-        "juyangjin",
-        "juyang_jin",
-        "juyang jin",
+def get_headers():
+    return {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
     }
 
-    if normalized_name in allowed_names:
-        return True
-
-    return False
-
 
 # ============================================================
-# Commit 제외 여부
+# 개인 Repository 조회
 # ============================================================
 
-def is_ignored_commit(commit):
-    message = (
-        commit.get("commit", {})
-        .get("message", "")
-        .strip()
-    )
-
-    return message.startswith(IGNORED_COMMIT_PREFIXES)
-
-
-# ============================================================
-# 기본 Branch Commit 조회
-# ============================================================
-
-def fetch_default_branch_commits(repository, since, until):
+def fetch_personal_repositories(username):
     """
-    일반 Repository는 기본 Branch만 조회한다.
+    개인 계정의 Public Repository 조회
     """
 
-    url = f"{BASE_URL}/repos/{repository}/commits"
+    url = f"https://api.github.com/users/{username}/repos"
 
-    commits = []
+    repositories = []
     page = 1
 
     while True:
-        data = github_get(
+
+        params = {
+            "per_page": 100,
+            "page": page,
+            "sort": "updated",
+            "direction": "desc"
+        }
+
+        response = requests.get(
             url,
-            params={
-                "since": since,
-                "until": until,
-                "per_page": 100,
-                "page": page,
-            },
+            headers=get_headers(),
+            params=params,
+            timeout=30
         )
 
-        if not data:
-            break
+        if response.status_code != 200:
 
-        commits.extend(data)
-
-        if len(data) < 100:
-            break
-
-        page += 1
-
-    return commits
-
-
-# ============================================================
-# 모든 Branch 조회
-# ============================================================
-
-def fetch_all_branch_commits(repository, since, until):
-    """
-    지정된 프로젝트 Repository의 모든 Branch를 조회하고
-    각 Branch의 Commit을 가져온다.
-
-    같은 Commit이 여러 Branch에 존재할 수 있으므로
-    SHA 기준으로 중복 제거한다.
-    """
-
-    print("   ⭐ 프로젝트 Repository → 모든 Branch 조회")
-
-    branches_url = f"{BASE_URL}/repos/{repository}/branches"
-
-    branches = []
-    page = 1
-
-    # --------------------------------------------------------
-    # Branch 목록 가져오기
-    # --------------------------------------------------------
-
-    while True:
-        data = github_get(
-            branches_url,
-            params={
-                "per_page": 100,
-                "page": page,
-            },
-        )
-
-        if not data:
-            break
-
-        branches.extend(data)
-
-        if len(data) < 100:
-            break
-
-        page += 1
-
-    print(f"   → Branch {len(branches)}개 발견")
-
-    if not branches:
-        return []
-
-    # --------------------------------------------------------
-    # Branch별 Commit 조회
-    # --------------------------------------------------------
-
-    unique_commits = {}
-
-    for branch in branches:
-        branch_name = branch.get("name")
-
-        if not branch_name:
-            continue
-
-        print(f"      └─ {branch_name}")
-
-        commits_url = f"{BASE_URL}/repos/{repository}/commits"
-
-        page = 1
-
-        while True:
-            data = github_get(
-                commits_url,
-                params={
-                    "sha": branch_name,
-                    "since": since,
-                    "until": until,
-                    "per_page": 100,
-                    "page": page,
-                },
+            print(
+                f"개인 Repository 조회 실패: "
+                f"{response.status_code}"
             )
 
-            if not data:
-                break
+            print(response.text)
 
-            for commit in data:
-                sha = commit.get("sha")
+            break
 
-                if sha:
-                    unique_commits[sha] = commit
-
-            if len(data) < 100:
-                break
-
-            page += 1
-
-    return list(unique_commits.values())
-
-
-# ============================================================
-# Repository Commit 조회
-# ============================================================
-
-def fetch_commits(repository, since, until):
-    """
-    모여볼 / 술케줄
-        → 모든 Branch 조회
-
-    그 외 Repository
-        → 기본 Branch 조회
-    """
-
-    if repository in BRANCH_TRACKING_REPOSITORIES:
-        commits = fetch_all_branch_commits(
-            repository,
-            since,
-            until,
-        )
-    else:
-        commits = fetch_default_branch_commits(
-            repository,
-            since,
-            until,
-        )
-
-    # 본인 Commit + 자동 README Commit 제외
-    filtered_commits = []
-
-    for commit in commits:
-
-        if is_ignored_commit(commit):
-            continue
-
-        if not is_my_commit(commit):
-            continue
-
-        filtered_commits.append(commit)
-
-    # 혹시 API 결과 순서가 섞여 있어도 시간순 정렬
-    filtered_commits.sort(
-        key=lambda commit: commit["commit"]["author"]["date"]
-    )
-
-    return filtered_commits
-
-
-# ============================================================
-# 개인 Repository + Commit Repository 발견
-# ============================================================
-
-def discover_all_repositories():
-    repositories = set()
-
-    # --------------------------------------------------------
-    # 개인 Repository 검색
-    # --------------------------------------------------------
-
-    print("📂 개인 Repository 검색 중...")
-
-    url = f"{BASE_URL}/users/{GITHUB_USERNAME}/repos"
-
-    page = 1
-
-    while True:
-        data = github_get(
-            url,
-            params={
-                "per_page": 100,
-                "page": page,
-            },
-        )
+        data = response.json()
 
         if not data:
             break
 
         for repo in data:
-            full_name = repo.get("full_name")
 
-            if full_name:
-                repositories.add(full_name)
+            if not repo.get("private", False):
+
+                repositories.append(
+                    repo["full_name"]
+                )
 
         if len(data) < 100:
             break
 
         page += 1
 
-    print(f"   → 개인 Repository {len(repositories)}개")
+    return repositories
 
-    # --------------------------------------------------------
-    # 최근 Commit 검색
-    # --------------------------------------------------------
 
-    print("🔎 최근 Commit에서 Repository 검색 중...")
+# ============================================================
+# Commit Search를 이용한 Repository 발견
+# ============================================================
 
-    search_url = f"{BASE_URL}/search/commits"
+def discover_repositories_from_commits(
+    username,
+    since,
+    until
+):
+    """
+    최근 Commit을 검색하여
+    사용자가 실제로 Commit한 Repository를 찾는다.
 
-    data = github_get(
-        search_url,
-        params={
-            "q": f"author:{GITHUB_USERNAME}",
+    Organization Repository도 발견 가능하다.
+    """
+
+    url = "https://api.github.com/search/commits"
+
+    repositories = set()
+
+    page = 1
+
+    while True:
+
+        query = (
+            f"author:{username} "
+            f"committer-date:"
+            f"{since.strftime('%Y-%m-%d')}.."
+            f"{until.strftime('%Y-%m-%d')}"
+        )
+
+        params = {
+            "q": query,
             "per_page": 100,
-        },
-    )
+            "page": page
+        }
 
-    commit_repo_count = 0
+        response = requests.get(
+            url,
+            headers=get_headers(),
+            params=params,
+            timeout=30
+        )
 
-    if data:
-        items = data.get("items", [])
+        if response.status_code != 200:
+
+            print(
+                f"Commit Search 실패: "
+                f"{response.status_code}"
+            )
+
+            print(response.text)
+
+            break
+
+        data = response.json()
+
+        items = data.get(
+            "items",
+            []
+        )
+
+        if not items:
+            break
 
         for item in items:
-            repo = (
+
+            repository = (
                 item
                 .get("repository", {})
                 .get("full_name")
             )
 
-            if repo:
-                repositories.add(repo)
-                commit_repo_count += 1
+            if repository:
 
-    print(f"   → Commit에서 {commit_repo_count}개 발견")
+                repositories.add(
+                    repository
+                )
+
+        total_count = data.get(
+            "total_count",
+            0
+        )
+
+        # GitHub Search API 최대 1000개
+        if (
+            len(items) < 100
+            or page * 100 >= min(
+                total_count,
+                1000
+            )
+        ):
+            break
+
+        page += 1
+
+    return sorted(repositories)
+
+
+# ============================================================
+# 전체 Repository 발견
+# ============================================================
+
+def discover_all_repositories(
+    username,
+    since,
+    until
+):
+    """
+    개인 Repository + Commit Search 결과를 합친다.
+    """
+
+    repositories = set()
 
     # --------------------------------------------------------
-    # 반드시 추적해야 하는 프로젝트 Repository 추가
+    # 개인 Repository
     # --------------------------------------------------------
-
-    for repository in PROJECT_NAMES.keys():
-        if repository not in repositories:
-            repositories.add(repository)
 
     print(
-        f"📌 등록된 프로젝트 "
-        f"{len(PROJECT_NAMES)}개 추가"
+        "📂 개인 Repository 검색 중..."
+    )
+
+    personal_repositories = (
+        fetch_personal_repositories(
+            username
+        )
+    )
+
+    repositories.update(
+        personal_repositories
+    )
+
+    print(
+        f"   → 개인 Repository "
+        f"{len(personal_repositories)}개"
+    )
+
+    # --------------------------------------------------------
+    # Commit Search
+    # --------------------------------------------------------
+
+    print(
+        "🔎 최근 Commit에서 Repository 검색 중..."
+    )
+
+    commit_repositories = (
+        discover_repositories_from_commits(
+            username,
+            since,
+            until
+        )
+    )
+
+    repositories.update(
+        commit_repositories
+    )
+
+    print(
+        f"   → Commit에서 "
+        f"{len(commit_repositories)}개 발견"
+    )
+
+    # --------------------------------------------------------
+    # 등록된 프로젝트 Repository는 항상 추적
+    # --------------------------------------------------------
+
+    repositories.update(
+        BRANCH_TRACKING_REPOSITORIES
     )
 
     return sorted(repositories)
 
 
 # ============================================================
-# 개발 시간 계산
+# Repository Commit 조회
 # ============================================================
 
-def calculate_development_time(commits):
+def fetch_commits(
+    repository,
+    since,
+    until
+):
     """
-    Commit timestamp를 기준으로 개발 시간을 추정한다.
+    특정 Repository의 Commit 조회.
 
-    규칙:
-    - 첫 Commit: 30분
-    - Commit 간격 <= 60분:
-        실제 간격을 개발 시간으로 계산
-    - Commit 간격 > 60분:
-        30분 추가
-    - Commit 간격 >= 2시간:
-        새로운 Session으로 판단하여 30분 추가
+    일반 Repository:
+    → 기본 Branch Commit 조회
+
+    모여볼 / 술케줄:
+    → 모든 Branch Commit 조회
+
+    GitHub login 또는 Git author.name을 이용하여
+    본인의 Commit만 필터링한다.
+    """
+
+    # ========================================================
+    # 모여볼 / 술케줄
+    # → 모든 Branch 조회
+    # ========================================================
+
+    if repository in BRANCH_TRACKING_REPOSITORIES:
+
+        branches_url = (
+            f"https://api.github.com/repos/"
+            f"{repository}/branches"
+        )
+
+        print(
+            "   ⭐ 프로젝트 Repository "
+            "→ 모든 Branch 조회"
+        )
+
+        branches = []
+        branch_page = 1
+
+        while True:
+
+            branch_params = {
+                "per_page": 100,
+                "page": branch_page
+            }
+
+            branch_response = requests.get(
+                branches_url,
+                headers=get_headers(),
+                params=branch_params,
+                timeout=30
+            )
+
+            if branch_response.status_code != 200:
+
+                print(
+                    f"[{repository}] "
+                    f"Branch 조회 실패: "
+                    f"{branch_response.status_code}"
+                )
+
+                print(
+                    branch_response.text
+                )
+
+                return []
+
+            branch_data = (
+                branch_response.json()
+            )
+
+            if not branch_data:
+                break
+
+            branches.extend(
+                branch_data
+            )
+
+            if len(branch_data) < 100:
+                break
+
+            branch_page += 1
+
+        print(
+            f"   → Branch "
+            f"{len(branches)}개 발견"
+        )
+
+        commits_by_sha = {}
+
+        # ----------------------------------------------------
+        # Branch별 Commit 조회
+        # ----------------------------------------------------
+
+        for branch in branches:
+
+            branch_name = branch.get(
+                "name"
+            )
+
+            if not branch_name:
+                continue
+
+            print(
+                f"      └─ {branch_name}"
+            )
+
+            url = (
+                f"https://api.github.com/repos/"
+                f"{repository}/commits"
+            )
+
+            page = 1
+
+            while True:
+
+                params = {
+                    "sha": branch_name,
+                    "since": since.isoformat(),
+                    "until": until.isoformat(),
+                    "per_page": 100,
+                    "page": page
+                }
+
+                response = requests.get(
+                    url,
+                    headers=get_headers(),
+                    params=params,
+                    timeout=30
+                )
+
+                # 빈 Repository
+                if response.status_code == 409:
+                    break
+
+                if response.status_code != 200:
+
+                    print(
+                        f"[{repository}] "
+                        f"Commit 조회 실패: "
+                        f"{response.status_code}"
+                    )
+
+                    print(
+                        response.text
+                    )
+
+                    break
+
+                data = response.json()
+
+                if not data:
+                    break
+
+                for commit in data:
+
+                    sha = commit.get(
+                        "sha"
+                    )
+
+                    if sha:
+                        commits_by_sha[
+                            sha
+                        ] = commit
+
+                if len(data) < 100:
+                    break
+
+                page += 1
+
+        commits = list(
+            commits_by_sha.values()
+        )
+
+    # ========================================================
+    # 일반 Repository
+    # → 기존처럼 기본 Branch 조회
+    # ========================================================
+
+    else:
+
+        url = (
+            f"https://api.github.com/repos/"
+            f"{repository}/commits"
+        )
+
+        commits = []
+        page = 1
+
+        while True:
+
+            params = {
+                "since": since.isoformat(),
+                "until": until.isoformat(),
+                "per_page": 100,
+                "page": page
+            }
+
+            response = requests.get(
+                url,
+                headers=get_headers(),
+                params=params,
+                timeout=30
+            )
+
+            # 빈 Repository
+            if response.status_code == 409:
+                return []
+
+            if response.status_code != 200:
+
+                print(
+                    f"[{repository}] "
+                    f"Commit 조회 실패: "
+                    f"{response.status_code}"
+                )
+
+                print(response.text)
+
+                break
+
+            data = response.json()
+
+            if not data:
+                break
+
+            commits.extend(
+                data
+            )
+
+            if len(data) < 100:
+                break
+
+            page += 1
+
+    # ========================================================
+    # Commit 필터링
+    # ========================================================
+
+    filtered_commits = []
+
+    for commit in commits:
+
+        # ====================================================
+        # 자동 README 업데이트 제외
+        # ====================================================
+
+        message = (
+            commit
+            .get("commit", {})
+            .get("message", "")
+        )
+
+        if message.startswith(
+            "Update development log"
+        ):
+            continue
+
+        if message.startswith(
+            "Update weekly study chart and logs"
+        ):
+            continue
+
+        # ====================================================
+        # GitHub 계정
+        # ====================================================
+
+        github_author = commit.get(
+            "author"
+        )
+
+        github_login = None
+
+        if github_author:
+
+            github_login = (
+                github_author.get(
+                    "login"
+                )
+            )
+
+        # ====================================================
+        # Git author 이름
+        # ====================================================
+
+        git_author = (
+            commit
+            .get("commit", {})
+            .get("author", {})
+        )
+
+        git_name = (
+            git_author
+            .get("name", "")
+            .strip()
+        )
+
+        # ====================================================
+        # 본인 Commit인지 확인
+        # ====================================================
+
+        is_my_commit = (
+            github_login == GITHUB_USERNAME
+            or git_name in GITHUB_AUTHOR_NAMES
+        )
+
+        if not is_my_commit:
+            continue
+
+        filtered_commits.append(
+            commit
+        )
+
+    # 시간순 정렬
+    filtered_commits.sort(
+        key=lambda commit: (
+            commit
+            .get("commit", {})
+            .get("author", {})
+            .get("date", "")
+        )
+    )
+
+    return filtered_commits
+
+
+# ============================================================
+# Commit 시간 추출
+# ============================================================
+
+def get_commit_times(commits):
+
+    times = []
+
+    for commit in commits:
+
+        date_string = (
+            commit
+            .get("commit", {})
+            .get("author", {})
+            .get("date")
+        )
+
+        if not date_string:
+            continue
+
+        try:
+
+            commit_time = datetime.fromisoformat(
+                date_string.replace(
+                    "Z",
+                    "+00:00"
+                )
+            )
+
+            commit_time = (
+                commit_time.astimezone(
+                    KST
+                )
+            )
+
+            times.append(
+                commit_time
+            )
+
+        except ValueError:
+
+            continue
+
+    return sorted(times)
+
+
+# ============================================================
+# 날짜별 Commit 그룹화
+# ============================================================
+
+def group_commits_by_date(
+    commit_times
+):
+
+    commits_by_date = {}
+
+    for commit_time in commit_times:
+
+        date = commit_time.strftime(
+            "%Y-%m-%d"
+        )
+
+        commits_by_date.setdefault(
+            date,
+            []
+        ).append(
+            commit_time
+        )
+
+    return commits_by_date
+
+
+# ============================================================
+# 개발시간 계산
+# ============================================================
+
+def calculate_daily_development_time(
+    commit_times
+):
+    """
+    Commit 시간을 기반으로 개발시간 추정.
+
+    - Commit 없음 → 기록하지 않음
+    - Commit 1개 → 30분
+    - 이후 Commit 간격 → 최대 60분
+    - 2시간 이상 공백 → 새 세션
     - 하루 최대 8시간
     """
 
-    if not commits:
-        return {}
-
-    commits_by_date = defaultdict(list)
-
-    for commit in commits:
-        date_string = (
-            commit["commit"]["author"]["date"]
-        )
-
-        dt = datetime.fromisoformat(
-            date_string.replace("Z", "+00:00")
-        ).astimezone(KST)
-
-        date_key = dt.date()
-
-        commits_by_date[date_key].append(dt)
-
     daily_minutes = {}
 
-    for date, timestamps in commits_by_date.items():
+    commits_by_date = (
+        group_commits_by_date(
+            commit_times
+        )
+    )
 
-        timestamps.sort()
+    for date, times in commits_by_date.items():
 
-        total_minutes = COMMIT_MINUTES
+        if not times:
+            continue
 
-        for i in range(1, len(timestamps)):
+        times.sort()
+
+        # 첫 Commit
+        minutes = FIRST_COMMIT_MINUTES
+
+        # 이후 Commit
+        for i in range(
+            1,
+            len(times)
+        ):
 
             gap = (
-                timestamps[i] - timestamps[i - 1]
+                times[i]
+                - times[i - 1]
             ).total_seconds() / 60
 
-            if gap <= MAX_GAP_MINUTES:
-                total_minutes += gap
+            # 새로운 세션
+            if gap >= SESSION_GAP_MINUTES:
 
-            elif gap >= SESSION_BREAK_MINUTES:
-                total_minutes += COMMIT_MINUTES
+                minutes += (
+                    FIRST_COMMIT_MINUTES
+                )
 
             else:
-                total_minutes += COMMIT_MINUTES
 
-        total_minutes = min(
-            int(total_minutes),
-            MAX_DAILY_MINUTES,
+                minutes += min(
+                    gap,
+                    MAX_GAP_MINUTES
+                )
+
+        # 하루 최대 8시간
+        minutes = min(
+            round(minutes),
+            MAX_DAILY_MINUTES
         )
 
-        daily_minutes[date] = total_minutes
+        if minutes > 0:
+
+            daily_minutes[
+                date
+            ] = minutes
 
     return daily_minutes
 
 
 # ============================================================
-# 전체 개발 시간 계산
+# 전체 개발시간 계산
+# ============================================================
+
+def calculate_total_development_time(
+    all_commit_times
+):
+    """
+    모든 Repository의 Commit을 합쳐
+    전체 개발시간을 계산한다.
+
+    같은 시간대의 Commit도 시간 간격 기준으로
+    한 번만 계산한다.
+    """
+
+    if not all_commit_times:
+        return {}
+
+    all_commit_times = sorted(
+        all_commit_times
+    )
+
+    commits_by_date = (
+        group_commits_by_date(
+            all_commit_times
+        )
+    )
+
+    daily_minutes = {}
+
+    for date, times in commits_by_date.items():
+
+        if not times:
+            continue
+
+        times.sort()
+
+        minutes = FIRST_COMMIT_MINUTES
+
+        for i in range(
+            1,
+            len(times)
+        ):
+
+            gap = (
+                times[i]
+                - times[i - 1]
+            ).total_seconds() / 60
+
+            if gap >= SESSION_GAP_MINUTES:
+
+                minutes += (
+                    FIRST_COMMIT_MINUTES
+                )
+
+            else:
+
+                minutes += min(
+                    gap,
+                    MAX_GAP_MINUTES
+                )
+
+        minutes = min(
+            round(minutes),
+            MAX_DAILY_MINUTES
+        )
+
+        if minutes > 0:
+
+            daily_minutes[
+                date
+            ] = minutes
+
+    return daily_minutes
+
+
+# ============================================================
+# JSON 저장
+# ============================================================
+
+def save_dev_logs(logs):
+
+    with open(
+        LOG_FILE,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            logs,
+            f,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
+# ============================================================
+# 시간 표시
 # ============================================================
 
 def format_minutes(minutes):
+
+    if minutes <= 0:
+        return "-"
+
     hours = minutes // 60
     mins = minutes % 60
 
@@ -494,280 +930,412 @@ def format_minutes(minutes):
 
 
 # ============================================================
-# README 프로젝트 이름
+# 프로젝트 표시명
 # ============================================================
 
 def get_project_name(repository):
-    """
-    Repository가 PROJECT_NAMES에 등록되어 있으면
-    지정된 프로젝트명을 사용한다.
-    """
 
-    return PROJECT_NAMES.get(
-        repository,
-        repository,
+    if repository in PROJECT_NAMES:
+
+        return PROJECT_NAMES[
+            repository
+        ]
+
+    # 아직 이름을 지정하지 않은 Repository
+    # → owner/repository 그대로 표시
+    return repository
+
+
+# ============================================================
+# README 개발 기록
+# ============================================================
+
+def generate_weekly_development_chart(
+    repository_logs,
+    total_logs
+):
+
+    today = datetime.now(
+        KST
+    ).date()
+
+    dates = [
+        today - timedelta(days=i)
+        for i in range(
+            6,
+            -1,
+            -1
+        )
+    ]
+
+    date_strings = [
+        date.strftime(
+            "%Y-%m-%d"
+        )
+        for date in dates
+    ]
+
+    chart = (
+        "## 📊 최근 7일 개발 기록\n\n"
     )
 
+    # ========================================================
+    # 전체 개발시간
+    # ========================================================
+
+    total_week_minutes = sum(
+        total_logs.get(
+            date,
+            0
+        )
+        for date in date_strings
+    )
+
+    chart += (
+        f"### ⏱️ 총 개발시간 "
+        f"**{format_minutes(total_week_minutes)}**\n\n"
+    )
+
+    # ========================================================
+    # 전체 표
+    # ========================================================
+
+    chart += (
+        "| 프로젝트 | "
+        + " | ".join(
+            date.strftime("%m/%d")
+            for date in dates
+        )
+        + " | Total |\n"
+    )
+
+    chart += (
+        "|---|"
+        + "---:|" * 8
+        + "\n"
+    )
+
+    total_values = []
+
+    for date in date_strings:
+
+        minutes = total_logs.get(
+            date,
+            0
+        )
+
+        total_values.append(
+            format_minutes(
+                minutes
+            )
+        )
+
+    chart += (
+        "| **전체** | "
+        + " | ".join(
+            total_values
+        )
+        + f" | **{format_minutes(total_week_minutes)}** |\n"
+    )
+
+    chart += "\n"
+
+    # ========================================================
+    # 프로젝트별 기록
+    # ========================================================
+
+    chart += (
+        "### 📚 프로젝트별 기록\n\n"
+    )
+
+    chart += (
+        "| 프로젝트 | "
+        + " | ".join(
+            date.strftime("%m/%d")
+            for date in dates
+        )
+        + " | Total |\n"
+    )
+
+    chart += (
+        "|---|"
+        + "---:|" * 8
+        + "\n"
+    )
+
+    for repository, daily_logs in sorted(
+        repository_logs.items(),
+        key=lambda item: get_project_name(
+            item[0]
+        )
+    ):
+
+        project_name = get_project_name(
+            repository
+        )
+
+        values = []
+
+        project_total = 0
+
+        for date in date_strings:
+
+            minutes = daily_logs.get(
+                date,
+                0
+            )
+
+            project_total += minutes
+
+            values.append(
+                format_minutes(
+                    minutes
+                )
+            )
+
+        chart += (
+            f"| {project_name} | "
+            + " | ".join(
+                values
+            )
+            + f" | **{format_minutes(project_total)}** |\n"
+        )
+
+    chart += "\n"
+
+    chart += (
+        "> 💡 GitHub Commit 시간을 기준으로 "
+        "개발 활동 시간을 추정합니다. "
+        "Commit이 없는 날은 기록하지 않습니다. "
+        "Commit 1개는 30분, Commit 간격은 최대 60분까지 "
+        "인정하며, 2시간 이상 공백은 새로운 개발 세션으로 "
+        "계산합니다. 하루 최대 8시간으로 제한합니다. "
+        "GitHub Actions의 자동 README 업데이트 Commit은 "
+        "제외합니다.\n"
+    )
+
+    return chart
+
 
 # ============================================================
-# README 생성
+# README 업데이트
 # ============================================================
 
-def update_readme(daily_logs):
-    """
-    기존 README의 포트폴리오 영역 + 최근 7일 개발 기록을
-    생성한다.
+def update_readme():
 
-    프로젝트명은 PROJECT_NAMES의 값을 사용한다.
-    """
+    print(
+        "🚀 개발 기록 업데이트 시작"
+    )
 
-    readme_path = "README.md"
+    print()
 
     # --------------------------------------------------------
     # 최근 7일
     # --------------------------------------------------------
 
-    today = datetime.now(KST).date()
+    today = datetime.now(KST)
 
-    last_7_days = [
-        today - timedelta(days=i)
-        for i in range(6, -1, -1)
-    ]
-
-    # --------------------------------------------------------
-    # 전체 시간
-    # --------------------------------------------------------
-
-    total_minutes = sum(
-        daily_logs.get(day, 0)
-        for day in last_7_days
+    start_date = (
+        today.date()
+        - timedelta(days=6)
     )
-
-    # --------------------------------------------------------
-    # README 작성
-    # --------------------------------------------------------
-
-    lines = []
-
-    lines.append("# 👋 Juyang Jin")
-    lines.append("")
-    lines.append("백엔드 개발자를 준비하고 있습니다.")
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    lines.append("## 🛠️ Tech Stack")
-    lines.append("")
-    lines.append("- Java 17")
-    lines.append("- Spring Boot")
-    lines.append("- Spring Data JPA")
-    lines.append("- QueryDSL")
-    lines.append("- PostgreSQL")
-    lines.append("- Redis")
-    lines.append("- Docker")
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    lines.append("## 📊 최근 7일 개발 기록")
-    lines.append("")
-    lines.append(
-        f"**총 개발시간: "
-        f"{format_minutes(total_minutes)}**"
-    )
-    lines.append("")
-
-    # --------------------------------------------------------
-    # 7일 개발 기록
-    # --------------------------------------------------------
-
-    for day in last_7_days:
-
-        minutes = daily_logs.get(day, 0)
-
-        if minutes > 0:
-            time_text = format_minutes(minutes)
-        else:
-            time_text = "기록 없음"
-
-        lines.append(
-            f"- {day.strftime('%Y-%m-%d')} : "
-            f"{time_text}"
-        )
-
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    lines.append("## 📚 Projects")
-    lines.append("")
-
-    # 프로젝트명 표시
-    for repository, project_name in PROJECT_NAMES.items():
-
-        lines.append(
-            f"- **{project_name}**"
-        )
-
-    lines.append("")
-
-    with open(
-        readme_path,
-        "w",
-        encoding="utf-8",
-    ) as file:
-        file.write("\n".join(lines))
-
-
-# ============================================================
-# 메인
-# ============================================================
-
-def main():
-
-    if not GITHUB_TOKEN:
-        print(
-            "❌ GITHUB_TOKEN 환경변수가 없습니다."
-        )
-        return
-
-    print("=" * 60)
-    print("🚀 GitHub 개발시간 계산 시작")
-    print("=" * 60)
-
-    # --------------------------------------------------------
-    # Repository 검색
-    # --------------------------------------------------------
-
-    repositories = discover_all_repositories()
-
-    print(
-        f"\n📦 총 {len(repositories)}개 Repository 추적"
-    )
-
-    # --------------------------------------------------------
-    # 최근 7일 범위
-    # --------------------------------------------------------
-
-    today = datetime.now(KST).date()
-
-    start_date = today - timedelta(days=6)
 
     since = datetime.combine(
         start_date,
         datetime.min.time(),
-        tzinfo=KST,
-    ).astimezone(timezone.utc).isoformat()
+        tzinfo=KST
+    )
 
     until = datetime.combine(
-        today + timedelta(days=1),
+        today.date()
+        + timedelta(days=1),
         datetime.min.time(),
-        tzinfo=KST,
-    ).astimezone(timezone.utc).isoformat()
+        tzinfo=KST
+    )
 
     # --------------------------------------------------------
-    # 전체 일자별 개발 시간
+    # 전체 Repository 발견
     # --------------------------------------------------------
 
-    total_daily_logs = defaultdict(int)
+    repositories = (
+        discover_all_repositories(
+            GITHUB_USERNAME,
+            since,
+            until
+        )
+    )
+
+    print()
+
+    print(
+        f"📦 총 {len(repositories)}개 "
+        f"Repository 추적"
+    )
+
+    print()
+
+    repository_logs = {}
+
+    all_commit_times = []
 
     # --------------------------------------------------------
-    # Repository별 조회
+    # Repository별 처리
     # --------------------------------------------------------
 
     for repository in repositories:
 
-        project_name = get_project_name(repository)
-
         print(
-            f"\n🔍 [{project_name}]"
+            f"🔍 [{repository}]"
         )
 
         commits = fetch_commits(
             repository,
             since,
-            until,
+            until
         )
 
         if not commits:
-            print("   → 본인 Commit 없음")
+
+            print(
+                "   → 본인 Commit 없음"
+            )
+
             continue
 
-        print(
-            f"   → Commit: {len(commits)}개"
-        )
-
-        daily_time = calculate_development_time(
+        commit_times = get_commit_times(
             commits
         )
 
-        repository_total = 0
+        if not commit_times:
 
-        for date, minutes in daily_time.items():
+            print(
+                "   → 유효한 Commit 없음"
+            )
 
-            total_daily_logs[date] += minutes
-            repository_total += minutes
+            continue
 
-        print(
-            f"   → 개발시간: "
-            f"{format_minutes(repository_total)}"
+        # Repository별 개발시간
+        daily_minutes = (
+            calculate_daily_development_time(
+                commit_times
+            )
         )
 
-    # --------------------------------------------------------
-    # 하루 전체 최대 8시간 적용
-    # --------------------------------------------------------
+        if daily_minutes:
 
-    final_daily_logs = {}
+            repository_logs[
+                repository
+            ] = daily_minutes
 
-    for date, minutes in total_daily_logs.items():
+            repo_total = sum(
+                daily_minutes.values()
+            )
 
-        final_daily_logs[date] = min(
-            minutes,
-            MAX_DAILY_MINUTES,
+            print(
+                f"   → 개발시간: "
+                f"{format_minutes(repo_total)}"
+            )
+
+        # 전체 계산용
+        all_commit_times.extend(
+            commit_times
         )
 
     # --------------------------------------------------------
     # 전체 개발시간
     # --------------------------------------------------------
 
-    total_minutes = sum(
-        final_daily_logs.values()
+    total_logs = (
+        calculate_total_development_time(
+            all_commit_times
+        )
     )
 
-    print("\n" + "=" * 60)
+    total_minutes = sum(
+        total_logs.values()
+    )
+
+    print()
+
     print(
         f"⏱️ 전체 개발시간: "
         f"{format_minutes(total_minutes)}"
     )
-    print("=" * 60)
 
     # --------------------------------------------------------
     # JSON 저장
     # --------------------------------------------------------
 
-    json_data = {
-        str(date): minutes
-        for date, minutes in sorted(
-            final_daily_logs.items()
-        )
+    logs = {
+        "repositories": repository_logs,
+        "total": total_logs
     }
 
+    save_dev_logs(
+        logs
+    )
+
+    # --------------------------------------------------------
+    # README 고정 영역
+    # --------------------------------------------------------
+
+    fixed_content = """# My GitHub Portfolio
+
+👋 여기는 제가 공부한 내용과 프로젝트를 공유하는 공간이에요.
+
+## 📚 코딩 테스트 레포지토리
+
+### [백준, 프로그래머스](https://github.com/juyangjin/Coding-Test)
+- 설명: 백준, 프로그래머스 알고리즘 문제 풀이를 다룹니다.
+
+### [코드트리](https://github.com/juyangjin/Code-Tree)
+- 설명: 코드트리 알고리즘 문제 풀이를 다룹니다.
+
+## 🧠 개인 공부
+
+### [이것이 자바다](https://github.com/juyangjin/JAVA-s-Study)
+- 설명: '이것이 자바다' 도서를 기반으로 한 공부자료입니다.
+
+## 🚀 현재 개발하고 유지 중인 서비스
+
+### [모여볼(2026.06 ~ )](https://github.com/swyp-5th-team9/backend)
+- 설명: 스포츠 펍 파인더 앱 서비스
+
+### [술케줄(2026.08 ~ )](https://github.com/swyp-web15-3team/backend)
+- 설명: 한일 위스키 가격 비교와 면세 쇼핑 플랜 웹 서비스
+"""
+
+    # --------------------------------------------------------
+    # 개발 기록
+    # --------------------------------------------------------
+
+    development_chart = (
+        generate_weekly_development_chart(
+            repository_logs,
+            total_logs
+        )
+    )
+
+    # --------------------------------------------------------
+    # README 저장
+    # --------------------------------------------------------
+
     with open(
-        "dev_logs.json",
+        "README.md",
         "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            json_data,
-            file,
-            ensure_ascii=False,
-            indent=2,
+        encoding="utf-8"
+    ) as f:
+
+        f.write(
+            fixed_content
+            + "\n\n"
+            + development_chart
         )
 
-    # --------------------------------------------------------
-    # README 업데이트
-    # --------------------------------------------------------
-
-    update_readme(final_daily_logs)
-
-    print("\n🎉 README 업데이트 완료!")
+    print()
+    print(
+        "🎉 README 업데이트 완료!"
+    )
 
 
 # ============================================================
@@ -775,4 +1343,4 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
-    main()
+    update_readme()
