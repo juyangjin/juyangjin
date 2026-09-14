@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+
 from datetime import datetime, timedelta, timezone
 
 
@@ -11,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 LOG_FILE = "dev_logs.json"
 
 GITHUB_USERNAME = "juyangjin"
+GITHUB_EMAIL = "wndid2008@gmail.com"
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
@@ -20,15 +22,6 @@ if not GITHUB_TOKEN:
 
 # ============================================================
 # 프로젝트 표시 이름
-# ============================================================
-#
-# 실제 GitHub Repository는 owner/repository로 관리하고
-# README에는 프로젝트 이름으로 표시한다.
-#
-# 새로운 프로젝트가 생기면 여기에 추가하면 된다.
-#
-# 예:
-# "organization/backend": "프로젝트명"
 # ============================================================
 
 PROJECT_NAMES = {
@@ -46,8 +39,13 @@ PROJECT_NAMES = {
 # ============================================================
 
 GITHUB_AUTHOR_NAMES = {
+    "juyangjin",
     "Juyang_Jin",
     "Juyang Jin",
+}
+
+GITHUB_AUTHOR_EMAILS = {
+    "wndid2008@gmail.com",
 }
 
 
@@ -61,7 +59,7 @@ FIRST_COMMIT_MINUTES = 30
 # Commit 사이 최대 인정 시간
 MAX_GAP_MINUTES = 60
 
-# 2시간 이상 공백이면 새로운 세션
+# 이 시간 이상 공백이면 새로운 개발 세션
 SESSION_GAP_MINUTES = 120
 
 # 하루 최대 개발시간
@@ -87,6 +85,32 @@ def get_headers():
     }
 
 
+def github_get(url, params=None):
+    """
+    GitHub API GET 공통 함수
+    """
+
+    response = requests.get(
+        url,
+        headers=get_headers(),
+        params=params,
+        timeout=30
+    )
+
+    if response.status_code != 200:
+
+        print(
+            f"GitHub API 요청 실패: "
+            f"{response.status_code}"
+        )
+
+        print(response.text)
+
+        return None
+
+    return response.json()
+
+
 # ============================================================
 # 개인 Repository 조회
 # ============================================================
@@ -110,25 +134,13 @@ def fetch_personal_repositories(username):
             "direction": "desc"
         }
 
-        response = requests.get(
+        data = github_get(
             url,
-            headers=get_headers(),
-            params=params,
-            timeout=30
+            params
         )
 
-        if response.status_code != 200:
-
-            print(
-                f"개인 Repository 조회 실패: "
-                f"{response.status_code}"
-            )
-
-            print(response.text)
-
+        if data is None:
             break
-
-        data = response.json()
 
         if not data:
             break
@@ -186,25 +198,13 @@ def discover_repositories_from_commits(
             "page": page
         }
 
-        response = requests.get(
+        data = github_get(
             url,
-            headers=get_headers(),
-            params=params,
-            timeout=30
+            params
         )
 
-        if response.status_code != 200:
-
-            print(
-                f"Commit Search 실패: "
-                f"{response.status_code}"
-            )
-
-            print(response.text)
-
+        if data is None:
             break
-
-        data = response.json()
 
         items = data.get(
             "items",
@@ -315,6 +315,82 @@ def discover_all_repositories(
 
 
 # ============================================================
+# 본인 Commit 판별
+# ============================================================
+
+def is_my_commit(commit):
+    """
+    GitHub 계정 / Git author 이름 / 이메일을 이용하여
+    본인의 Commit인지 판단한다.
+
+    우선순위:
+    1. GitHub login
+    2. Git author email
+    3. Git author name
+    """
+
+    # --------------------------------------------------------
+    # GitHub 계정
+    # --------------------------------------------------------
+
+    github_author = commit.get(
+        "author"
+    )
+
+    if github_author:
+
+        github_login = (
+            github_author
+            .get("login")
+        )
+
+        if github_login == GITHUB_USERNAME:
+            return True
+
+    # --------------------------------------------------------
+    # Git author 정보
+    # --------------------------------------------------------
+
+    git_author = (
+        commit
+        .get("commit", {})
+        .get("author", {})
+    )
+
+    git_name = (
+        git_author
+        .get("name", "")
+        .strip()
+    )
+
+    git_email = (
+        git_author
+        .get("email", "")
+        .strip()
+        .lower()
+    )
+
+    # --------------------------------------------------------
+    # 이메일 기준
+    # --------------------------------------------------------
+
+    if git_email in {
+        email.lower()
+        for email in GITHUB_AUTHOR_EMAILS
+    }:
+        return True
+
+    # --------------------------------------------------------
+    # 이름 기준
+    # --------------------------------------------------------
+
+    if git_name in GITHUB_AUTHOR_NAMES:
+        return True
+
+    return False
+
+
+# ============================================================
 # Repository Commit 조회
 # ============================================================
 
@@ -326,8 +402,11 @@ def fetch_commits(
     """
     특정 Repository의 Commit 조회.
 
-    GitHub login 또는 Git author.name을 이용하여
-    본인의 Commit만 필터링한다.
+    GitHub login
+    + Git author email
+    + Git author name
+
+    을 이용하여 본인의 Commit만 필터링한다.
     """
 
     url = (
@@ -347,31 +426,15 @@ def fetch_commits(
             "page": page
         }
 
-        response = requests.get(
+        data = github_get(
             url,
-            headers=get_headers(),
-            params=params,
-            timeout=30
+            params
         )
 
-        # 빈 Repository
-        if response.status_code == 409:
-            return []
-
-        if response.status_code != 200:
-
-            print(
-                f"[{repository}] "
-                f"Commit 조회 실패: "
-                f"{response.status_code}"
-            )
-
-            print(response.text)
-
+        if data is None:
             break
 
-        data = response.json()
-
+        # 빈 Repository
         if not data:
             break
 
@@ -398,49 +461,10 @@ def fetch_commits(
                 continue
 
             # =================================================
-            # GitHub 계정
-            # =================================================
-
-            github_author = commit.get(
-                "author"
-            )
-
-            github_login = None
-
-            if github_author:
-
-                github_login = (
-                    github_author.get(
-                        "login"
-                    )
-                )
-
-            # =================================================
-            # Git author 이름
-            # =================================================
-
-            git_author = (
-                commit
-                .get("commit", {})
-                .get("author", {})
-            )
-
-            git_name = (
-                git_author
-                .get("name", "")
-                .strip()
-            )
-
-            # =================================================
             # 본인 Commit인지 확인
             # =================================================
 
-            is_my_commit = (
-                github_login == GITHUB_USERNAME
-                or git_name in GITHUB_AUTHOR_NAMES
-            )
-
-            if not is_my_commit:
+            if not is_my_commit(commit):
                 continue
 
             commits.append(
@@ -502,6 +526,39 @@ def get_commit_times(commits):
 
 
 # ============================================================
+# 중복 Commit 시간 제거
+# ============================================================
+
+def remove_duplicate_times(commit_times):
+    """
+    여러 Repository에서 같은 시간에 발생한 Commit을
+    전체 개발시간 계산 시 중복으로 세지 않도록 제거한다.
+    """
+
+    if not commit_times:
+        return []
+
+    unique_times = []
+
+    previous_time = None
+
+    for commit_time in sorted(commit_times):
+
+        if (
+            previous_time is None
+            or commit_time != previous_time
+        ):
+
+            unique_times.append(
+                commit_time
+            )
+
+            previous_time = commit_time
+
+    return unique_times
+
+
+# ============================================================
 # 날짜별 Commit 그룹화
 # ============================================================
 
@@ -535,13 +592,25 @@ def calculate_daily_development_time(
     commit_times
 ):
     """
-    Commit 시간을 기반으로 개발시간 추정.
+    Commit 시간을 기반으로 개발시간을 추정한다.
 
-    - Commit 없음 → 기록하지 않음
-    - Commit 1개 → 30분
-    - 이후 Commit 간격 → 최대 60분
-    - 2시간 이상 공백 → 새 세션
-    - 하루 최대 8시간
+    규칙:
+
+    Commit 0개
+        → 0분
+
+    Commit 1개
+        → 30분
+
+    Commit 간격 < 2시간
+        → 실제 간격을 인정하되 최대 60분
+
+    Commit 간격 >= 2시간
+        → 새로운 세션으로 판단
+        → 새로운 Commit 30분 인정
+
+    하루 최대
+        → 8시간
     """
 
     daily_minutes = {}
@@ -557,12 +626,20 @@ def calculate_daily_development_time(
         if not times:
             continue
 
-        times.sort()
+        times = sorted(
+            times
+        )
 
+        # ----------------------------------------------------
         # 첫 Commit
+        # ----------------------------------------------------
+
         minutes = FIRST_COMMIT_MINUTES
 
+        # ----------------------------------------------------
         # 이후 Commit
+        # ----------------------------------------------------
+
         for i in range(
             1,
             len(times)
@@ -573,12 +650,21 @@ def calculate_daily_development_time(
                 - times[i - 1]
             ).total_seconds() / 60
 
-            # 새로운 세션
+            # ------------------------------------------------
+            # 2시간 이상 공백
+            # → 새로운 세션
+            # ------------------------------------------------
+
             if gap >= SESSION_GAP_MINUTES:
 
                 minutes += (
                     FIRST_COMMIT_MINUTES
                 )
+
+            # ------------------------------------------------
+            # 같은 세션
+            # → 최대 60분 인정
+            # ------------------------------------------------
 
             else:
 
@@ -587,7 +673,10 @@ def calculate_daily_development_time(
                     MAX_GAP_MINUTES
                 )
 
+        # ----------------------------------------------------
         # 하루 최대 8시간
+        # ----------------------------------------------------
+
         minutes = min(
             round(minutes),
             MAX_DAILY_MINUTES
@@ -613,69 +702,36 @@ def calculate_total_development_time(
     모든 Repository의 Commit을 합쳐
     전체 개발시간을 계산한다.
 
-    같은 시간대의 Commit도 시간 간격 기준으로
-    한 번만 계산한다.
+    여러 Repository에서 동시에 발생한 Commit은
+    하나의 활동으로 취급한다.
+
+    즉,
+
+        backend 19:00
+        frontend 19:05
+
+    라면 전체 개발시간에서는
+    5분의 간격만 계산한다.
+
+    프로젝트별 시간은 각각 별도로 계산한다.
     """
 
     if not all_commit_times:
         return {}
 
-    all_commit_times = sorted(
-        all_commit_times
-    )
+    # --------------------------------------------------------
+    # 동일 시간 Commit 제거
+    # --------------------------------------------------------
 
-    commits_by_date = (
-        group_commits_by_date(
+    all_commit_times = (
+        remove_duplicate_times(
             all_commit_times
         )
     )
 
-    daily_minutes = {}
-
-    for date, times in commits_by_date.items():
-
-        if not times:
-            continue
-
-        times.sort()
-
-        minutes = FIRST_COMMIT_MINUTES
-
-        for i in range(
-            1,
-            len(times)
-        ):
-
-            gap = (
-                times[i]
-                - times[i - 1]
-            ).total_seconds() / 60
-
-            if gap >= SESSION_GAP_MINUTES:
-
-                minutes += (
-                    FIRST_COMMIT_MINUTES
-                )
-
-            else:
-
-                minutes += min(
-                    gap,
-                    MAX_GAP_MINUTES
-                )
-
-        minutes = min(
-            round(minutes),
-            MAX_DAILY_MINUTES
-        )
-
-        if minutes > 0:
-
-            daily_minutes[
-                date
-            ] = minutes
-
-    return daily_minutes
+    return calculate_daily_development_time(
+        all_commit_times
+    )
 
 
 # ============================================================
@@ -731,8 +787,6 @@ def get_project_name(repository):
             repository
         ]
 
-    # 아직 이름을 지정하지 않은 Repository
-    # → owner/repository 그대로 표시
     return repository
 
 
@@ -893,13 +947,22 @@ def generate_weekly_development_chart(
 
     chart += "\n"
 
+    # ========================================================
+    # 설명
+    # ========================================================
+
     chart += (
         "> 💡 GitHub Commit 시간을 기준으로 "
         "개발 활동 시간을 추정합니다. "
         "Commit이 없는 날은 기록하지 않습니다. "
-        "Commit 1개는 30분, Commit 간격은 최대 60분까지 "
-        "인정하며, 2시간 이상 공백은 새로운 개발 세션으로 "
-        "계산합니다. 하루 최대 8시간으로 제한합니다. "
+        "Commit 1개는 30분으로 인정하며, "
+        "같은 개발 세션의 Commit 간격은 최대 60분까지 "
+        "인정합니다. "
+        "2시간 이상 공백이 발생하면 새로운 개발 세션으로 "
+        "계산합니다. "
+        "하루 최대 8시간으로 제한합니다. "
+        "여러 Repository에서 동시에 발생한 Commit은 "
+        "전체 개발시간 계산 시 중복으로 계산하지 않습니다. "
         "GitHub Actions의 자동 README 업데이트 Commit은 "
         "제외합니다.\n"
     )
@@ -923,7 +986,9 @@ def update_readme():
     # 최근 7일
     # --------------------------------------------------------
 
-    today = datetime.now(KST)
+    today = datetime.now(
+        KST
+    )
 
     start_date = (
         today.date()
@@ -1004,7 +1069,10 @@ def update_readme():
 
             continue
 
+        # ----------------------------------------------------
         # Repository별 개발시간
+        # ----------------------------------------------------
+
         daily_minutes = (
             calculate_daily_development_time(
                 commit_times
@@ -1022,11 +1090,19 @@ def update_readme():
             )
 
             print(
+                f"   → Commit: "
+                f"{len(commit_times)}개"
+            )
+
+            print(
                 f"   → 개발시간: "
                 f"{format_minutes(repo_total)}"
             )
 
+        # ----------------------------------------------------
         # 전체 계산용
+        # ----------------------------------------------------
+
         all_commit_times.extend(
             commit_times
         )
