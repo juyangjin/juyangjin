@@ -23,6 +23,13 @@ if not GITHUB_TOKEN:
 # ============================================================
 # 프로젝트 표시 이름
 # ============================================================
+#
+# key   : 실제 GitHub Repository (owner/repository)
+# value : README에 표시할 프로젝트 이름
+#
+# Organization Repository도 여기에 등록하면
+# 항상 추적 대상으로 포함된다.
+# ============================================================
 
 PROJECT_NAMES = {
     "juyangjin/JAVA-s-Study": "Java Study",
@@ -258,13 +265,21 @@ def discover_all_repositories(
     until
 ):
     """
-    개인 Repository + Commit Search 결과를 합친다.
+    개인 Repository
+    + Commit Search
+    + PROJECT_NAMES에 등록된 Repository
+
+    를 모두 합친다.
+
+    PROJECT_NAMES에 등록된 Repository는
+    Commit Search에서 발견되지 않아도
+    무조건 조회 대상으로 포함한다.
     """
 
     repositories = set()
 
     # --------------------------------------------------------
-    # 개인 Repository
+    # 1. 개인 Repository
     # --------------------------------------------------------
 
     print(
@@ -287,7 +302,7 @@ def discover_all_repositories(
     )
 
     # --------------------------------------------------------
-    # Commit Search
+    # 2. Commit Search
     # --------------------------------------------------------
 
     print(
@@ -311,6 +326,23 @@ def discover_all_repositories(
         f"{len(commit_repositories)}개 발견"
     )
 
+    # --------------------------------------------------------
+    # 3. ⭐ 직접 등록한 프로젝트 Repository
+    # --------------------------------------------------------
+
+    configured_repositories = set(
+        PROJECT_NAMES.keys()
+    )
+
+    repositories.update(
+        configured_repositories
+    )
+
+    print(
+        f"📌 등록된 프로젝트 "
+        f"{len(configured_repositories)}개 추가"
+    )
+
     return sorted(repositories)
 
 
@@ -320,17 +352,15 @@ def discover_all_repositories(
 
 def is_my_commit(commit):
     """
-    GitHub 계정 / Git author 이름 / 이메일을 이용하여
-    본인의 Commit인지 판단한다.
+    GitHub login
+    + Git author email
+    + Git author name
 
-    우선순위:
-    1. GitHub login
-    2. Git author email
-    3. Git author name
+    을 이용하여 본인의 Commit인지 판단한다.
     """
 
     # --------------------------------------------------------
-    # GitHub 계정
+    # 1. GitHub 계정
     # --------------------------------------------------------
 
     github_author = commit.get(
@@ -348,7 +378,7 @@ def is_my_commit(commit):
             return True
 
     # --------------------------------------------------------
-    # Git author 정보
+    # 2. Git author
     # --------------------------------------------------------
 
     git_author = (
@@ -371,17 +401,19 @@ def is_my_commit(commit):
     )
 
     # --------------------------------------------------------
-    # 이메일 기준
+    # 이메일
     # --------------------------------------------------------
 
-    if git_email in {
+    normalized_emails = {
         email.lower()
         for email in GITHUB_AUTHOR_EMAILS
-    }:
+    }
+
+    if git_email in normalized_emails:
         return True
 
     # --------------------------------------------------------
-    # 이름 기준
+    # 이름
     # --------------------------------------------------------
 
     if git_name in GITHUB_AUTHOR_NAMES:
@@ -606,7 +638,7 @@ def calculate_daily_development_time(
         → 실제 간격을 인정하되 최대 60분
 
     Commit 간격 >= 2시간
-        → 새로운 세션으로 판단
+        → 새로운 개발 세션
         → 새로운 Commit 30분 인정
 
     하루 최대
@@ -702,26 +734,12 @@ def calculate_total_development_time(
     모든 Repository의 Commit을 합쳐
     전체 개발시간을 계산한다.
 
-    여러 Repository에서 동시에 발생한 Commit은
-    하나의 활동으로 취급한다.
-
-    즉,
-
-        backend 19:00
-        frontend 19:05
-
-    라면 전체 개발시간에서는
-    5분의 간격만 계산한다.
-
-    프로젝트별 시간은 각각 별도로 계산한다.
+    여러 Repository에서 같은 시각에 발생한 Commit은
+    중복으로 계산하지 않는다.
     """
 
     if not all_commit_times:
         return {}
-
-    # --------------------------------------------------------
-    # 동일 시간 Commit 제거
-    # --------------------------------------------------------
 
     all_commit_times = (
         remove_duplicate_times(
@@ -947,10 +965,6 @@ def generate_weekly_development_chart(
 
     chart += "\n"
 
-    # ========================================================
-    # 설명
-    # ========================================================
-
     chart += (
         "> 💡 GitHub Commit 시간을 기준으로 "
         "개발 활동 시간을 추정합니다. "
@@ -961,7 +975,7 @@ def generate_weekly_development_chart(
         "2시간 이상 공백이 발생하면 새로운 개발 세션으로 "
         "계산합니다. "
         "하루 최대 8시간으로 제한합니다. "
-        "여러 Repository에서 동시에 발생한 Commit은 "
+        "여러 Repository에서 같은 시각에 발생한 Commit은 "
         "전체 개발시간 계산 시 중복으로 계산하지 않습니다. "
         "GitHub Actions의 자동 README 업데이트 Commit은 "
         "제외합니다.\n"
